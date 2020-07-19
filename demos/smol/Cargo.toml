@@ -1,0 +1,46 @@
+[package]
+name = "async-ssh2-lite-demo-smol"
+version = "0.1.0"
+authors = ["vkill <vkill.net@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "auth_with_password"
+path = "src/auth_with_password.rs"
+
+[[bin]]
+name = "auth_with_pubkey"
+path = "src/auth_with_pubkey.rs"
+
+[[bin]]
+name = "auth_with_ssh_agent"
+path = "src/auth_with_ssh_agent.rs"
+
+[[bin]]
+name = "inspect_ssh_agent"
+path = "src/inspect_ssh_agent.rs"
+
+[[bin]]
+name = "proxy_jump"
+path = "src/proxy_jump.rs"
+
+[[bin]]
+name = "remote_port_forwarding"
+path = "src/remote_port_forwarding.rs"
+
+[[bin]]
+name = "run_commands"
+path = "src/run_commands.rs"
+
+[[bin]]
+name = "sample"
+path = "src/sample.rs"
+
+[dependencies]
+async-ssh2-lite = { path = "../..", version = "0.1" }
+futures = "0.3"
+async-io = "0.1.2"
+blocking = "0.4.6"
+multitask = "0.2.0"
+async-channel = "1.1.1"
+tempfile = "3.1.0"
