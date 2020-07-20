@@ -15,7 +15,8 @@ readme = "README.md"
 [dependencies]
 ssh2 = { version = "0.8", default-features = false, features = [] }
 async-io = { version = "0.1", default-features = false, features = [] }
-futures-util = { version = "0.3", default-features = false, features = ["io"] }
+futures-io = { version = "0.3", default-features = false, features = ["std"] }
+pin-utils = { version = "0.1", default-features = false, features = [] }
 
 [workspace]
 members = [
