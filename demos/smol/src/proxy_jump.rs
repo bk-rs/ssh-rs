@@ -18,6 +18,8 @@ use futures::StreamExt;
 use futures::{AsyncReadExt, AsyncWriteExt};
 use multitask::{Executor, Task};
 
+#[cfg(not(unix))]
+use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 #[cfg(unix)]
@@ -104,11 +106,18 @@ async fn run(ex: Arc<Executor>) -> io::Result<()> {
             .await?;
 
         //
-        let (unix_stream_s, mut unix_stream_r) = {
-            let dir = tempdir()?;
-            let path = dir.path().join("ssh_channel_direct_tcpip");
-            let listener = Async::<UnixListener>::bind(&path)?;
-            let stream_s = Async::<UnixStream>::connect(&path).await?;
+        let (forward_stream_s, mut forward_stream_r) = {
+            cfg_if::cfg_if! {
+                if #[cfg(unix)] {
+                    let dir = tempdir()?;
+                    let path = dir.path().join("ssh_channel_direct_tcpip");
+                    let listener = Async::<UnixListener>::bind(&path)?;
+                    let stream_s = Async::<UnixStream>::connect(&path).await?;
+                } else {
+                    let listener = Async::<TcpListener>::bind(([127, 0, 0, 1], 0))?;
+                    let stream_s = Async::<TcpStream>::connect(&path).await?;
+                }
+            }
 
             let mut incoming = listener.incoming();
             let stream_r = incoming.next().await.unwrap()?;
@@ -118,24 +127,24 @@ async fn run(ex: Arc<Executor>) -> io::Result<()> {
 
         let task_with_forward: Task<io::Result<()>> = ex_with_forward.spawn(async move {
             let mut buf_bastion_channel = vec![0; 2048];
-            let mut buf_unix_stream_r = vec![0; 2048];
+            let mut buf_forward_stream_r = vec![0; 2048];
 
             loop {
                 select! {
-                    ret_unix_stream_r = unix_stream_r.read(&mut buf_unix_stream_r).fuse() => match ret_unix_stream_r {
+                    ret_forward_stream_r = forward_stream_r.read(&mut buf_forward_stream_r).fuse() => match ret_forward_stream_r {
                         Ok(n) if n == 0 => {
-                            println!("unix_stream_r read 0");
+                            println!("forward_stream_r read 0");
                             break
                         },
                         Ok(n) => {
-                            println!("unix_stream_r read {}", n);
-                            bastion_channel.write(&buf_unix_stream_r[..n]).await.map(|_| ()).map_err(|err| {
+                            println!("forward_stream_r read {}", n);
+                            bastion_channel.write(&buf_forward_stream_r[..n]).await.map(|_| ()).map_err(|err| {
                                 eprintln!("bastion_channel write failed, err {:?}", err);
                                 err
                             })?
                         },
                         Err(err) =>  {
-                            eprintln!("unix_stream_r read failed, err {:?}", err);
+                            eprintln!("forward_stream_r read failed, err {:?}", err);
 
                             return Err(err);
                         }
@@ -147,8 +156,8 @@ async fn run(ex: Arc<Executor>) -> io::Result<()> {
                         },
                         Ok(n) => {
                             println!("bastion_channel read {}", n);
-                            unix_stream_r.write(&buf_bastion_channel[..n]).await.map(|_| ()).map_err(|err| {
-                                eprintln!("unix_stream_r write failed, err {:?}", err);
+                            forward_stream_r.write(&buf_bastion_channel[..n]).await.map(|_| ()).map_err(|err| {
+                                eprintln!("forward_stream_r write failed, err {:?}", err);
                                 err
                             })?
                         },
@@ -168,7 +177,7 @@ async fn run(ex: Arc<Executor>) -> io::Result<()> {
         task_with_forward.detach();
 
         //
-        let mut session = AsyncSession::new(unix_stream_s, None)?;
+        let mut session = AsyncSession::new(forward_stream_s, None)?;
         session.handshake().await?;
 
         session.userauth_agent(username.as_ref()).await?;
