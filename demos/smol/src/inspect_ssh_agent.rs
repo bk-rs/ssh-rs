@@ -1,32 +1,39 @@
 /*
-cargo run -p async-ssh2-lite-demo-smol --bin inspect_ssh_agent 127.0.0.1:22
+cargo run -p async-ssh2-lite-demo-smol --bin inspect_ssh_agent
 */
 
-use std::env;
 use std::io;
-use std::net::{TcpStream, ToSocketAddrs};
+
+#[cfg(not(unix))]
+use std::net::TcpListener;
+#[cfg(unix)]
+use std::os::unix::net::UnixListener;
+#[cfg(unix)]
+use tempfile::tempdir;
 
 use async_io::Async;
 use blocking::block_on;
 
-use async_ssh2_lite::AsyncSession;
+use async_ssh2_lite::AsyncAgent;
 
 fn main() -> io::Result<()> {
     block_on(run())
 }
 
 async fn run() -> io::Result<()> {
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| env::var("ADDR").unwrap_or("127.0.0.1:22".to_owned()));
+    let stream = {
+        cfg_if::cfg_if! {
+            if #[cfg(unix)] {
+                let dir = tempdir()?;
+                let path = dir.path().join("ssh_agent");
+                Async::<UnixListener>::bind(&path)?
+            } else {
+                Async::<TcpListener>::bind(([127, 0, 0, 1], 0))?
+            }
+        }
+    };
 
-    let addr = addr.to_socket_addrs().unwrap().next().unwrap();
-
-    let stream = Async::<TcpStream>::connect(addr).await?;
-
-    let session = AsyncSession::new(stream, None)?;
-
-    let mut agent = session.agent()?;
+    let mut agent = AsyncAgent::new(stream)?;
 
     agent.connect().await?;
     agent.list_identities().await?;

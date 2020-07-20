@@ -493,7 +493,7 @@ struct SessionKeepaliveConfiguration {
     interval: u32,
 }
 
-fn get_session(configuration: Option<SessionConfiguration>) -> io::Result<Session> {
+pub(crate) fn get_session(configuration: Option<SessionConfiguration>) -> io::Result<Session> {
     let session = Session::new()?;
     session.set_blocking(false);
 

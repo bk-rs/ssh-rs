@@ -1,12 +1,61 @@
 use std::io;
 use std::sync::Arc;
 
+#[cfg(unix)]
+use std::os::unix::io::{AsRawFd, FromRawFd};
+#[cfg(windows)]
+use std::os::windows::io::{AsRawSocket, RawSocket};
+
 use async_io::Async;
 use ssh2::{Agent, PublicKey};
+
+use crate::session::get_session;
 
 pub struct AsyncAgent<S> {
     inner: Agent,
     async_io: Arc<Async<S>>,
+}
+
+#[cfg(unix)]
+impl<S> AsyncAgent<S>
+where
+    S: AsRawFd + FromRawFd + 'static,
+{
+    pub fn new(stream: Async<S>) -> io::Result<Self> {
+        let mut session = get_session(None)?;
+        session.set_tcp_stream(stream.into_inner()?);
+
+        let io = unsafe { S::from_raw_fd(session.as_raw_fd()) };
+        let async_io = Arc::new(Async::new(io)?);
+
+        let agent = session.agent()?;
+
+        Ok(Self {
+            inner: agent,
+            async_io,
+        })
+    }
+}
+
+#[cfg(windows)]
+impl<S> AsyncAgent<S>
+where
+    S: AsRawSocket + FromRawSocket + 'static,
+{
+    pub fn new(stream: Async<S>) -> io::Result<Self> {
+        let mut session = get_session(None)?;
+        session.set_tcp_stream(stream.into_inner()?);
+
+        let io = unsafe { S::from_raw_fd(session.as_raw_fd()) };
+        let async_io = Arc::new(Async::new(io)?);
+
+        let agent = session.agent()?;
+
+        Ok(Self {
+            inner: agent,
+            async_io,
+        })
+    }
 }
 
 impl<S> AsyncAgent<S> {
