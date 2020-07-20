@@ -11,12 +11,13 @@ use std::os::windows::io::{AsRawSocket, RawSocket};
 use async_io::Async;
 use ssh2::{
     BlockDirections, DisconnectCode, Error, HashType, HostKeyType, KeyboardInteractivePrompt,
-    KnownHosts, MethodType, Session,
+    KnownHosts, MethodType, ScpFileStat, Session,
 };
 
 use crate::agent::AsyncAgent;
 use crate::channel::AsyncChannel;
 use crate::listener::AsyncListener;
+use crate::sftp::AsyncSftp;
 
 pub struct AsyncSession<S> {
     inner: Session,
@@ -299,14 +300,53 @@ impl<S> AsyncSession<S> {
         })
     }
 
-    // TODO
-    // scp_recv
+    pub async fn scp_recv(&self, path: &Path) -> io::Result<(AsyncChannel<S>, ScpFileStat)> {
+        let inner = &self.inner;
 
-    // TODO
-    // scp_send
+        let ret = self
+            .async_io
+            .write_with(|_| inner.scp_recv(path).map_err(|err| err.into()))
+            .await;
 
-    // TODO
-    // sftp
+        ret.and_then(|(channel, scp_file_stat)| {
+            Ok((
+                AsyncChannel::from_parts(channel, self.async_io.clone()),
+                scp_file_stat,
+            ))
+        })
+    }
+
+    pub async fn scp_send(
+        &self,
+        remote_path: &Path,
+        mode: i32,
+        size: u64,
+        times: Option<(u64, u64)>,
+    ) -> io::Result<AsyncChannel<S>> {
+        let inner = &self.inner;
+
+        let ret = self
+            .async_io
+            .write_with(|_| {
+                inner
+                    .scp_send(remote_path, mode, size, times)
+                    .map_err(|err| err.into())
+            })
+            .await;
+
+        ret.and_then(|channel| Ok(AsyncChannel::from_parts(channel, self.async_io.clone())))
+    }
+
+    pub async fn sftp(&self) -> io::Result<AsyncSftp<S>> {
+        let inner = &self.inner;
+
+        let ret = self
+            .async_io
+            .write_with(|_| inner.sftp().map_err(|err| err.into()))
+            .await;
+
+        ret.and_then(|sftp| Ok(AsyncSftp::from_parts(sftp, self.async_io.clone())))
+    }
 
     pub async fn channel_open(
         &self,

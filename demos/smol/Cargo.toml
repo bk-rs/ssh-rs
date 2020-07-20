@@ -17,6 +17,14 @@ name = "auth_with_ssh_agent"
 path = "src/auth_with_ssh_agent.rs"
 
 [[bin]]
+name = "download_file"
+path = "src/download_file.rs"
+
+[[bin]]
+name = "inspect_sftp"
+path = "src/inspect_sftp.rs"
+
+[[bin]]
 name = "inspect_ssh_agent"
 path = "src/inspect_ssh_agent.rs"
 
@@ -36,6 +44,10 @@ path = "src/run_commands.rs"
 name = "sample"
 path = "src/sample.rs"
 
+[[bin]]
+name = "upload_file"
+path = "src/upload_file.rs"
+
 [dependencies]
 async-ssh2-lite = { path = "../..", version = "0.1" }
 futures = "0.3.5"
@@ -45,3 +57,4 @@ multitask = "0.2.0"
 async-channel = "1.1.1"
 tempfile = "3.1.0"
 cfg-if = "0.1.10"
+uuid = { version = "0.8.1", features = ["v4"] }

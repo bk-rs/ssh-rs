@@ -4,6 +4,7 @@ pub use agent::AsyncAgent;
 pub use channel::{AsyncChannel, AsyncStream};
 pub use listener::AsyncListener;
 pub use session::{AsyncSession, SessionConfiguration};
+pub use sftp::{AsyncFile, AsyncSftp};
 
 pub use ssh2;
 
@@ -11,4 +12,5 @@ mod agent;
 mod channel;
 mod listener;
 mod session;
+mod sftp;
 mod util;

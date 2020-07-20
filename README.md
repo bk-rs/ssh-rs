@@ -12,6 +12,9 @@
 * [Run commands](demos/smol/src/run_commands.rs)
 * [Remote port forwarding](demos/smol/src/remote_port_forwarding.rs)
 * [Through a jump host / bastion host](demos/smol/src/proxy_jump.rs)
+* [Inspecting sftp](demos/smol/src/inspect_sftp.rs)
+* [Upload a file](demos/smol/src/upload_file.rs)
+* [Download a file](demos/smol/src/download_file.rs)
 
 ## Dev
 
