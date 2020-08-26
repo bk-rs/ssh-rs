@@ -6,7 +6,7 @@ use std::time::Duration;
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, FromRawFd};
 #[cfg(windows)]
-use std::os::windows::io::{AsRawSocket, RawSocket};
+use std::os::windows::io::{AsRawSocket, FromRawSocket};
 
 use async_io::Async;
 use ssh2::{
