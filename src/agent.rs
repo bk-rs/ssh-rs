@@ -4,7 +4,7 @@ use std::sync::Arc;
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, FromRawFd};
 #[cfg(windows)]
-use std::os::windows::io::{AsRawSocket, RawSocket};
+use std::os::windows::io::{AsRawSocket, FromRawSocket};
 
 use async_io::Async;
 use ssh2::{Agent, PublicKey};
@@ -46,7 +46,7 @@ where
         let mut session = get_session(None)?;
         session.set_tcp_stream(stream.into_inner()?);
 
-        let io = unsafe { S::from_raw_fd(session.as_raw_fd()) };
+        let io = unsafe { S::from_raw_socket(session.as_raw_socket()) };
         let async_io = Arc::new(Async::new(io)?);
 
         let agent = session.agent()?;
