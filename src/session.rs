@@ -451,7 +451,7 @@ impl<S> AsyncSession<S> {
 //
 //
 //
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SessionConfiguration {
     banner: Option<String>,
     allow_sigpipe: Option<bool>,
@@ -488,6 +488,7 @@ impl SessionConfiguration {
     }
 }
 
+#[derive(Clone)]
 struct SessionKeepaliveConfiguration {
     want_reply: bool,
     interval: u32,
