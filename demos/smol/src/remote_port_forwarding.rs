@@ -8,7 +8,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::str;
 
 use async_io::Async;
-use blocking::block_on;
+use futures::executor::block_on;
 use futures::{AsyncReadExt, AsyncWriteExt};
 
 use async_ssh2_lite::AsyncSession;

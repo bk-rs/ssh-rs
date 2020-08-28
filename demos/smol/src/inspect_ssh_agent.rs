@@ -12,7 +12,7 @@ use std::os::unix::net::UnixListener;
 use tempfile::tempdir;
 
 use async_io::Async;
-use blocking::block_on;
+use futures::executor::block_on;
 
 use async_ssh2_lite::AsyncAgent;
 

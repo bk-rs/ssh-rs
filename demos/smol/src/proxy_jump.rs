@@ -7,12 +7,14 @@ cargo run -p async-ssh2-lite-demo-smol --bin proxy_jump intranet.com:22 intranet
 use std::env;
 use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
+use std::sync::Arc;
 
 use async_executor::{Executor, LocalExecutor, Task};
 use async_io::Async;
 use easy_parallel::Parallel;
+use futures::executor::block_on;
+use futures::future::FutureExt;
 use futures::select;
-use futures::FutureExt;
 use futures::StreamExt;
 use futures::{AsyncReadExt, AsyncWriteExt};
 
@@ -27,26 +29,27 @@ use async_ssh2_lite::AsyncSession;
 
 fn main() -> io::Result<()> {
     let ex = Executor::new();
+    let ex = Arc::new(ex);
     let local_ex = LocalExecutor::new();
     let (trigger, shutdown) = async_channel::unbounded::<()>();
 
     let ret_vec: (_, io::Result<()>) = Parallel::new()
         .each(0..4, |_| {
-            ex.run(async {
+            block_on(ex.run(async {
                 shutdown
                     .recv()
                     .await
                     .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-            })
+            }))
         })
         .finish(|| {
-            local_ex.run(async {
-                run().await?;
+            block_on(local_ex.run(async {
+                run(ex.clone()).await?;
 
                 drop(trigger);
 
                 Ok(())
-            })
+            }))
         });
 
     println!("ret_vec: {:?}", ret_vec);
@@ -54,7 +57,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-async fn run() -> io::Result<()> {
+async fn run(ex: Arc<Executor>) -> io::Result<()> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or("127.0.0.1:22".to_owned()));
@@ -78,7 +81,7 @@ async fn run() -> io::Result<()> {
     let (sender_with_forward, receiver) = async_channel::unbounded();
     receivers.push(receiver);
 
-    let task_with_main: Task<io::Result<()>> = Task::spawn(async move {
+    let task_with_main: Task<io::Result<()>> = ex.clone().spawn(async move {
         let bastion_stream = Async::<TcpStream>::connect(bastion_addr).await?;
 
         let mut bastion_session = AsyncSession::new(bastion_stream, None)?;
@@ -131,7 +134,7 @@ async fn run() -> io::Result<()> {
             (stream_s, stream_r)
         };
 
-        let task_with_forward: Task<io::Result<()>> = Task::spawn(async move {
+        let task_with_forward: Task<io::Result<()>> = ex.clone().spawn(async move {
             let mut buf_bastion_channel = vec![0; 2048];
             let mut buf_forward_stream_r = vec![0; 2048];
 

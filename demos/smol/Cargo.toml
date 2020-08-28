@@ -50,12 +50,11 @@ path = "src/upload_file.rs"
 
 [dependencies]
 async-ssh2-lite = { path = "../..", version = "0.1" }
-futures = "0.3.5"
-async-io = "0.1.2"
-blocking = "0.4.6"
-async-executor = "0.1.1"
-easy-parallel = "3.1.0"
-async-channel = "1.1.1"
-tempfile = "3.1.0"
-cfg-if = "0.1.10"
-uuid = { version = "0.8.1", features = ["v4"] }
+futures = "0.3"
+async-io = "0.2"
+async-executor = "0.2"
+easy-parallel = "3.1"
+async-channel = "1.4"
+tempfile = "3.1"
+cfg-if = "0.1"
+uuid = { version = "0.8", features = ["v4"] }
