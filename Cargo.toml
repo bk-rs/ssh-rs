@@ -18,6 +18,9 @@ async-io = { version = "0.2", default-features = false, features = [] }
 futures-io = { version = "0.3", default-features = false, features = ["std"] }
 pin-utils = { version = "0.1", default-features = false, features = [] }
 
+[features]
+vendored-openssl = ["ssh2/vendored-openssl"]
+
 [workspace]
 members = [
     "demos/smol",
