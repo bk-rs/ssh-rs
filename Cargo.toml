@@ -1,6 +1,6 @@
 [package]
 name = "async-ssh2-lite"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2018"
 description = "Asynchronous ssh2."
