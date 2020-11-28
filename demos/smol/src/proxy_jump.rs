@@ -57,7 +57,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-async fn run(ex: Arc<Executor>) -> io::Result<()> {
+async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or("127.0.0.1:22".to_owned()));

@@ -13,7 +13,7 @@ categories = ["asynchronous", "network-programming"]
 readme = "README.md"
 
 [dependencies]
-ssh2 = { version = "0.8", default-features = false, features = [] }
+ssh2 = { version = "0.9", default-features = false, features = [] }
 async-io = { version = "0.2", default-features = false, features = [] }
 futures-io = { version = "0.3", default-features = false, features = ["std"] }
 pin-utils = { version = "0.1", default-features = false, features = [] }

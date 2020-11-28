@@ -52,9 +52,9 @@ path = "src/upload_file.rs"
 async-ssh2-lite = { path = "../..", version = "0.1" }
 futures = "0.3"
 async-io = "0.2"
-async-executor = "0.2"
+async-executor = "1.4"
 easy-parallel = "3.1"
-async-channel = "1.4"
+async-channel = "1.5"
 tempfile = "3.1"
-cfg-if = "0.1"
+cfg-if = "1.0"
 uuid = { version = "0.8", features = ["v4"] }

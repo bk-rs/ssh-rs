@@ -412,7 +412,7 @@ impl<S> AsyncSession<S> {
 //
 impl<S> AsyncSession<S> {
     pub fn last_error(&self) -> Option<Error> {
-        Error::last_error(&self.inner)
+        Error::last_session_error(&self.inner)
     }
 
     pub async fn userauth_agent_with_try_next(&self, username: &str) -> io::Result<()> {
