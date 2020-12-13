@@ -6,7 +6,7 @@ cargo run -p async-ssh2-lite-demo-smol --bin proxy_jump intranet.com:22 intranet
 
 use std::env;
 use std::io;
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 
 use async_executor::{Executor, LocalExecutor, Task};
@@ -15,15 +15,7 @@ use easy_parallel::Parallel;
 use futures::executor::block_on;
 use futures::future::FutureExt;
 use futures::select;
-use futures::StreamExt;
 use futures::{AsyncReadExt, AsyncWriteExt};
-
-#[cfg(not(unix))]
-use std::net::TcpListener;
-#[cfg(unix)]
-use std::os::unix::net::{UnixListener, UnixStream};
-#[cfg(unix)]
-use tempfile::tempdir;
 
 use async_ssh2_lite::AsyncSession;
 
@@ -114,22 +106,11 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
             .channel_direct_tcpip(addr.ip().to_string().as_ref(), addr.port(), None)
             .await?;
 
-        //
         let (forward_stream_s, mut forward_stream_r) = {
-            cfg_if::cfg_if! {
-                if #[cfg(unix)] {
-                    let dir = tempdir()?;
-                    let path = dir.path().join("ssh_channel_direct_tcpip");
-                    let listener = Async::<UnixListener>::bind(&path)?;
-                    let stream_s = Async::<UnixStream>::connect(&path).await?;
-                } else {
-                    let listener = Async::<TcpListener>::bind(([127, 0, 0, 1], 0))?;
-                    let stream_s = Async::<TcpStream>::connect(&path).await?;
-                }
-            }
+            let listener = Async::<TcpListener>::bind(([127, 0, 0, 1], 0))?;
+            let stream_s = Async::<TcpStream>::connect(addr).await?;
 
-            let mut incoming = listener.incoming();
-            let stream_r = incoming.next().await.unwrap()?;
+            let (stream_r, _) = listener.accept().await.unwrap();
 
             (stream_s, stream_r)
         };
