@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use async_io::Async;
-use futures_util::future::FutureExt;
 use futures_util::io::{AsyncRead, AsyncWrite};
+use futures_util::ready;
 use ssh2::{Channel, ExitSignal, ExtendedData, PtyModes, ReadWindow, Stream, WriteWindow};
 
 pub struct AsyncChannel<S> {
@@ -256,11 +256,13 @@ where
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
-        self.async_io
-            .clone()
-            .read_with(|_| self.inner.read(buf))
-            .boxed()
-            .poll_unpin(cx)
+        loop {
+            match self.inner.read(buf) {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_readable(cx))?;
+        }
     }
 }
 
@@ -273,29 +275,26 @@ where
         cx: &mut Context,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        self.async_io
-            .clone()
-            .write_with(|_| self.inner.write(buf))
-            .boxed()
-            .poll_unpin(cx)
+        loop {
+            match self.inner.write(buf) {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_writable(cx))?;
+        }
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        self.async_io
-            .clone()
-            .write_with(|_| self.inner.flush())
-            .boxed()
-            .poll_unpin(cx)
+        loop {
+            match self.inner.flush() {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_writable(cx))?;
+        }
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        self.async_io
-            .clone()
-            .write_with(|_| {
-                // TODO
-                Ok(())
-            })
-            .boxed()
-            .poll_unpin(cx)
+        self.poll_flush(cx)
     }
 }
