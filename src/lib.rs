@@ -13,4 +13,3 @@ mod channel;
 mod listener;
 mod session;
 mod sftp;
-mod util;
