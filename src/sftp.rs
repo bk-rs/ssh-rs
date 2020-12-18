@@ -39,7 +39,7 @@ impl<S> AsyncSftp<S> {
             })
             .await;
 
-        ret.and_then(|file| Ok(AsyncFile::from_parts(file, self.async_io.clone())))
+        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
     }
 
     pub async fn open(&self, filename: &Path) -> io::Result<AsyncFile<S>> {
@@ -50,7 +50,7 @@ impl<S> AsyncSftp<S> {
             .write_with(|_| inner.open(filename).map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|file| Ok(AsyncFile::from_parts(file, self.async_io.clone())))
+        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
     }
 
     pub async fn create(&self, filename: &Path) -> io::Result<AsyncFile<S>> {
@@ -61,7 +61,7 @@ impl<S> AsyncSftp<S> {
             .write_with(|_| inner.create(filename).map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|file| Ok(AsyncFile::from_parts(file, self.async_io.clone())))
+        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
     }
 
     pub async fn opendir(&self, dirname: &Path) -> io::Result<AsyncFile<S>> {
@@ -72,7 +72,7 @@ impl<S> AsyncSftp<S> {
             .write_with(|_| inner.opendir(dirname).map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|file| Ok(AsyncFile::from_parts(file, self.async_io.clone())))
+        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
     }
 
     pub async fn readdir(&self, dirname: &Path) -> io::Result<Vec<(PathBuf, FileStat)>> {

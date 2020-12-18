@@ -237,7 +237,7 @@ impl<S> AsyncSession<S> {
     pub fn agent(&self) -> io::Result<AsyncAgent<S>> {
         let ret = self.inner.agent().map_err(|err| err.into());
 
-        ret.and_then(|agent| Ok(AsyncAgent::from_parts(agent, self.async_io.clone())))
+        ret.map(|agent| AsyncAgent::from_parts(agent, self.async_io.clone()))
     }
 
     pub fn known_hosts(&self) -> io::Result<KnownHosts> {
@@ -252,7 +252,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| inner.channel_session().map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|channel| Ok(AsyncChannel::from_parts(channel, self.async_io.clone())))
+        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
     }
 
     pub async fn channel_direct_tcpip(
@@ -272,7 +272,7 @@ impl<S> AsyncSession<S> {
             })
             .await;
 
-        ret.and_then(|channel| Ok(AsyncChannel::from_parts(channel, self.async_io.clone())))
+        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
     }
 
     pub async fn channel_forward_listen(
@@ -292,11 +292,11 @@ impl<S> AsyncSession<S> {
             })
             .await;
 
-        ret.and_then(|(listener, port)| {
-            Ok((
+        ret.map(|(listener, port)| {
+            (
                 AsyncListener::from_parts(listener, self.async_io.clone()),
                 port,
-            ))
+            )
         })
     }
 
@@ -308,11 +308,11 @@ impl<S> AsyncSession<S> {
             .write_with(|_| inner.scp_recv(path).map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|(channel, scp_file_stat)| {
-            Ok((
+        ret.map(|(channel, scp_file_stat)| {
+            (
                 AsyncChannel::from_parts(channel, self.async_io.clone()),
                 scp_file_stat,
-            ))
+            )
         })
     }
 
@@ -334,7 +334,7 @@ impl<S> AsyncSession<S> {
             })
             .await;
 
-        ret.and_then(|channel| Ok(AsyncChannel::from_parts(channel, self.async_io.clone())))
+        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
     }
 
     pub async fn sftp(&self) -> io::Result<AsyncSftp<S>> {
@@ -345,7 +345,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| inner.sftp().map_err(|err| err.into()))
             .await;
 
-        ret.and_then(|sftp| Ok(AsyncSftp::from_parts(sftp, self.async_io.clone())))
+        ret.map(|sftp| AsyncSftp::from_parts(sftp, self.async_io.clone()))
     }
 
     pub async fn channel_open(
@@ -366,7 +366,7 @@ impl<S> AsyncSession<S> {
             })
             .await;
 
-        ret.and_then(|channel| Ok(AsyncChannel::from_parts(channel, self.async_io.clone())))
+        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
     }
 
     pub fn host_key(&self) -> Option<(&[u8], HostKeyType)> {
