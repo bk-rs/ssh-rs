@@ -5,10 +5,9 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use async_io::Async;
-use futures_io::{AsyncRead, AsyncWrite};
+use futures_util::io::{AsyncRead, AsyncWrite};
+use futures_util::ready;
 use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Sftp};
-
-use crate::util::poll_once;
 
 pub struct AsyncSftp<S> {
     inner: Sftp,
@@ -188,43 +187,54 @@ impl<S> AsyncFile<S> {
     }
 }
 
-impl<S> AsyncRead for AsyncFile<S> {
+impl<S> AsyncRead for AsyncFile<S>
+where
+    S: Unpin + Send + Sync + 'static,
+{
     fn poll_read(
-        self: Pin<&mut Self>,
+        mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-
-        let inner = &mut this.inner;
-
-        poll_once(cx, this.async_io.read_with(|_| inner.read(buf)))
+        loop {
+            match self.inner.read(buf) {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_readable(cx))?;
+        }
     }
 }
 
-impl<S> AsyncWrite for AsyncFile<S> {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-
-        let inner = &mut this.inner;
-
-        poll_once(cx, this.async_io.write_with(|_| inner.write(buf)))
+impl<S> AsyncWrite for AsyncFile<S>
+where
+    S: Unpin + Send + Sync + 'static,
+{
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        loop {
+            match self.inner.write(buf) {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_writable(cx))?;
+        }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-
-        let inner = &mut this.inner;
-
-        poll_once(cx, this.async_io.write_with(|_| inner.flush()))
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        loop {
+            match self.inner.flush() {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_writable(cx))?;
+        }
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-
-        let _ = &mut this.inner;
-
-        // TODO
-        poll_once(cx, this.async_io.write_with(|_| Ok(())))
+        self.poll_flush(cx)
     }
 }

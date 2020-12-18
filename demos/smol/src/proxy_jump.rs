@@ -15,7 +15,6 @@ use easy_parallel::Parallel;
 use futures::executor::block_on;
 use futures::future::FutureExt;
 use futures::select;
-use futures::StreamExt;
 use futures::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(not(unix))]
@@ -123,13 +122,16 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
                     let listener = Async::<UnixListener>::bind(&path)?;
                     let stream_s = Async::<UnixStream>::connect(&path).await?;
                 } else {
-                    let listener = Async::<TcpListener>::bind(([127, 0, 0, 1], 0))?;
-                    let stream_s = Async::<TcpStream>::connect(&path).await?;
+                    let listen_addr = TcpListener::bind("localhost:0")
+                        .unwrap()
+                        .local_addr()
+                        .unwrap();
+                    let listener = Async::<TcpListener>::bind(listen_addr)?;
+                    let stream_s = Async::<TcpStream>::connect(listen_addr).await?;
                 }
             }
 
-            let mut incoming = listener.incoming();
-            let stream_r = incoming.next().await.unwrap()?;
+            let (stream_r,_) = listener.accept().await.unwrap();
 
             (stream_s, stream_r)
         };
