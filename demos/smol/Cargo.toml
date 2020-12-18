@@ -49,7 +49,7 @@ name = "upload_file"
 path = "src/upload_file.rs"
 
 [dependencies]
-async-ssh2-lite = { path = "../..", version = "0.1" }
+async-ssh2-lite = { path = "../..", version = "0.2" }
 futures = "0.3"
 async-io = "1.3"
 async-executor = "1.4"
