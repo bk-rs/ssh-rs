@@ -69,7 +69,7 @@ impl<S> AsyncAgent<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.connect().map_err(|err| err.into()))
+            .write_with(|_| inner.connect().map_err(Into::into))
             .await
     }
 
@@ -77,7 +77,7 @@ impl<S> AsyncAgent<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.disconnect().map_err(|err| err.into()))
+            .write_with(|_| inner.disconnect().map_err(Into::into))
             .await
     }
 
@@ -85,19 +85,19 @@ impl<S> AsyncAgent<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.list_identities().map_err(|err| err.into()))
+            .write_with(|_| inner.list_identities().map_err(Into::into))
             .await
     }
 
     pub fn identities(&self) -> io::Result<Vec<PublicKey>> {
-        self.inner.identities().map_err(|err| err.into())
+        self.inner.identities().map_err(Into::into)
     }
 
     pub async fn userauth(&self, username: &str, identity: &PublicKey) -> io::Result<()> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.userauth(username, identity).map_err(|err| err.into()))
+            .write_with(|_| inner.userauth(username, identity).map_err(Into::into))
             .await
     }
 }

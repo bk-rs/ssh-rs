@@ -85,7 +85,7 @@ impl<S> AsyncSession<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.handshake().map_err(|err| err.into()))
+            .write_with(|_| inner.handshake().map_err(Into::into))
             .await
     }
 
@@ -96,7 +96,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .userauth_password(username, password)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -112,7 +112,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .userauth_keyboard_interactive(username, prompter)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -147,7 +147,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .userauth_pubkey_file(username, pubkey, privatekey, passphrase)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -166,7 +166,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .userauth_pubkey_memory(username, pubkeydata, privatekeydata, passphrase)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -193,7 +193,7 @@ impl<S> AsyncSession<S> {
                         hostname,
                         local_username,
                     )
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -206,7 +206,7 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.auth_methods(username).map_err(|err| err.into()))
+            .write_with(|_| inner.auth_methods(username).map_err(Into::into))
             .await
     }
 
@@ -214,11 +214,7 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| {
-                inner
-                    .method_pref(method_type, prefs)
-                    .map_err(|err| err.into())
-            })
+            .write_with(|_| inner.method_pref(method_type, prefs).map_err(Into::into))
             .await
     }
 
@@ -230,18 +226,18 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.supported_algs(method_type).map_err(|err| err.into()))
+            .write_with(|_| inner.supported_algs(method_type).map_err(Into::into))
             .await
     }
 
     pub fn agent(&self) -> io::Result<AsyncAgent<S>> {
-        let ret = self.inner.agent().map_err(|err| err.into());
+        let ret = self.inner.agent().map_err(Into::into);
 
         ret.map(|agent| AsyncAgent::from_parts(agent, self.async_io.clone()))
     }
 
     pub fn known_hosts(&self) -> io::Result<KnownHosts> {
-        self.inner.known_hosts().map_err(|err| err.into())
+        self.inner.known_hosts().map_err(Into::into)
     }
 
     pub async fn channel_session(&self) -> io::Result<AsyncChannel<S>> {
@@ -249,7 +245,7 @@ impl<S> AsyncSession<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.channel_session().map_err(|err| err.into()))
+            .write_with(|_| inner.channel_session().map_err(Into::into))
             .await;
 
         ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
@@ -268,7 +264,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .channel_direct_tcpip(host, port, src)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await;
 
@@ -288,7 +284,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .channel_forward_listen(remote_port, host, queue_maxsize)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await;
 
@@ -305,7 +301,7 @@ impl<S> AsyncSession<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.scp_recv(path).map_err(|err| err.into()))
+            .write_with(|_| inner.scp_recv(path).map_err(Into::into))
             .await;
 
         ret.map(|(channel, scp_file_stat)| {
@@ -330,7 +326,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .scp_send(remote_path, mode, size, times)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await;
 
@@ -342,7 +338,7 @@ impl<S> AsyncSession<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.sftp().map_err(|err| err.into()))
+            .write_with(|_| inner.sftp().map_err(Into::into))
             .await;
 
         ret.map(|sftp| AsyncSftp::from_parts(sftp, self.async_io.clone()))
@@ -362,7 +358,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .channel_open(channel_type, window_size, packet_size, message)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await;
 
@@ -381,7 +377,7 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.keepalive_send().map_err(|err| err.into()))
+            .write_with(|_| inner.keepalive_send().map_err(Into::into))
             .await
     }
 
@@ -397,7 +393,7 @@ impl<S> AsyncSession<S> {
             .write_with(|_| {
                 inner
                     .disconnect(reason, description, lang)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }

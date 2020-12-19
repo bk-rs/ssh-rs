@@ -35,7 +35,7 @@ impl<S> AsyncSftp<S> {
             .write_with(|_| {
                 inner
                     .open_mode(filename, flags, mode, open_type)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await;
 
@@ -47,7 +47,7 @@ impl<S> AsyncSftp<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.open(filename).map_err(|err| err.into()))
+            .write_with(|_| inner.open(filename).map_err(Into::into))
             .await;
 
         ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
@@ -58,7 +58,7 @@ impl<S> AsyncSftp<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.create(filename).map_err(|err| err.into()))
+            .write_with(|_| inner.create(filename).map_err(Into::into))
             .await;
 
         ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
@@ -69,7 +69,7 @@ impl<S> AsyncSftp<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.opendir(dirname).map_err(|err| err.into()))
+            .write_with(|_| inner.opendir(dirname).map_err(Into::into))
             .await;
 
         ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
@@ -79,7 +79,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.readdir(dirname).map_err(|err| err.into()))
+            .write_with(|_| inner.readdir(dirname).map_err(Into::into))
             .await
     }
 
@@ -87,7 +87,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.mkdir(filename, mode).map_err(|err| err.into()))
+            .write_with(|_| inner.mkdir(filename, mode).map_err(Into::into))
             .await
     }
 
@@ -95,7 +95,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.rmdir(filename).map_err(|err| err.into()))
+            .write_with(|_| inner.rmdir(filename).map_err(Into::into))
             .await
     }
 
@@ -103,7 +103,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.stat(filename).map_err(|err| err.into()))
+            .write_with(|_| inner.stat(filename).map_err(Into::into))
             .await
     }
 
@@ -111,7 +111,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.lstat(filename).map_err(|err| err.into()))
+            .write_with(|_| inner.lstat(filename).map_err(Into::into))
             .await
     }
 
@@ -119,11 +119,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| {
-                inner
-                    .setstat(filename, stat.clone())
-                    .map_err(|err| err.into())
-            })
+            .write_with(|_| inner.setstat(filename, stat.clone()).map_err(Into::into))
             .await
     }
 
@@ -131,7 +127,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.symlink(path, target).map_err(|err| err.into()))
+            .write_with(|_| inner.symlink(path, target).map_err(Into::into))
             .await
     }
 
@@ -139,7 +135,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.readlink(path).map_err(|err| err.into()))
+            .write_with(|_| inner.readlink(path).map_err(Into::into))
             .await
     }
 
@@ -147,7 +143,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.realpath(path).map_err(|err| err.into()))
+            .write_with(|_| inner.realpath(path).map_err(Into::into))
             .await
     }
 
@@ -160,7 +156,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.rename(src, dst, flags).map_err(|err| err.into()))
+            .write_with(|_| inner.rename(src, dst, flags).map_err(Into::into))
             .await
     }
 
@@ -168,7 +164,7 @@ impl<S> AsyncSftp<S> {
         let inner = &self.inner;
 
         self.async_io
-            .write_with(|_| inner.unlink(file).map_err(|err| err.into()))
+            .write_with(|_| inner.unlink(file).map_err(Into::into))
             .await
     }
 }

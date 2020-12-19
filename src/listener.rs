@@ -23,7 +23,7 @@ impl<S> AsyncListener<S> {
 
         let ret = self
             .async_io
-            .write_with(|_| inner.accept().map_err(|err| err.into()))
+            .write_with(|_| inner.accept().map_err(Into::into))
             .await;
 
         ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))

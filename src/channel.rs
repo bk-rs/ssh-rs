@@ -24,7 +24,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.setenv(var, val).map_err(|err| err.into()))
+            .write_with(|_| inner.setenv(var, val).map_err(Into::into))
             .await
     }
 
@@ -40,7 +40,7 @@ impl<S> AsyncChannel<S> {
             .write_with(|_| {
                 inner
                     .request_pty(term, mode.clone(), dim)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -58,7 +58,7 @@ impl<S> AsyncChannel<S> {
             .write_with(|_| {
                 inner
                     .request_pty_size(width, height, width_px, height_px)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -67,11 +67,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| {
-                inner
-                    .request_auth_agent_forwarding()
-                    .map_err(|err| err.into())
-            })
+            .write_with(|_| inner.request_auth_agent_forwarding().map_err(Into::into))
             .await
     }
 
@@ -79,7 +75,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.exec(command).map_err(|err| err.into()))
+            .write_with(|_| inner.exec(command).map_err(Into::into))
             .await
     }
 
@@ -87,7 +83,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.shell().map_err(|err| err.into()))
+            .write_with(|_| inner.shell().map_err(Into::into))
             .await
     }
 
@@ -95,7 +91,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.subsystem(system).map_err(|err| err.into()))
+            .write_with(|_| inner.subsystem(system).map_err(Into::into))
             .await
     }
 
@@ -107,11 +103,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| {
-                inner
-                    .process_startup(request, message)
-                    .map_err(|err| err.into())
-            })
+            .write_with(|_| inner.process_startup(request, message).map_err(Into::into))
             .await
     }
 
@@ -127,16 +119,16 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.handle_extended_data(mode).map_err(|err| err.into()))
+            .write_with(|_| inner.handle_extended_data(mode).map_err(Into::into))
             .await
     }
 
     pub fn exit_status(&self) -> io::Result<i32> {
-        self.inner.exit_status().map_err(|err| err.into())
+        self.inner.exit_status().map_err(Into::into)
     }
 
     pub async fn exit_signal(&self) -> io::Result<ExitSignal> {
-        self.inner.exit_signal().map_err(|err| err.into())
+        self.inner.exit_signal().map_err(Into::into)
     }
 
     pub fn read_window(&self) -> ReadWindow {
@@ -153,7 +145,7 @@ impl<S> AsyncChannel<S> {
             .write_with(|_| {
                 inner
                     .adjust_receive_window(adjust, force)
-                    .map_err(|err| err.into())
+                    .map_err(Into::into)
             })
             .await
     }
@@ -166,7 +158,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.send_eof().map_err(|err| err.into()))
+            .write_with(|_| inner.send_eof().map_err(Into::into))
             .await
     }
 
@@ -174,7 +166,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.wait_eof().map_err(|err| err.into()))
+            .write_with(|_| inner.wait_eof().map_err(Into::into))
             .await
     }
 
@@ -182,7 +174,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.close().map_err(|err| err.into()))
+            .write_with(|_| inner.close().map_err(Into::into))
             .await
     }
 
@@ -190,7 +182,7 @@ impl<S> AsyncChannel<S> {
         let inner = &mut self.inner;
 
         self.async_io
-            .write_with(|_| inner.wait_close().map_err(|err| err.into()))
+            .write_with(|_| inner.wait_close().map_err(Into::into))
             .await
     }
 }
