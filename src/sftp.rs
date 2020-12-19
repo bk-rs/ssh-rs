@@ -187,10 +187,7 @@ impl<S> AsyncFile<S> {
     }
 }
 
-impl<S> AsyncRead for AsyncFile<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncRead for AsyncFile<S> {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -206,10 +203,7 @@ where
     }
 }
 
-impl<S> AsyncWrite for AsyncFile<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncWrite for AsyncFile<S> {
     fn poll_write(
         mut self: Pin<&mut Self>,
         cx: &mut Context,

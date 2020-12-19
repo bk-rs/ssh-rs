@@ -195,10 +195,7 @@ impl<S> AsyncChannel<S> {
     }
 }
 
-impl<S> AsyncRead for AsyncChannel<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncRead for AsyncChannel<S> {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -210,10 +207,7 @@ where
     }
 }
 
-impl<S> AsyncWrite for AsyncChannel<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncWrite for AsyncChannel<S> {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
 
@@ -247,10 +241,7 @@ impl<S> AsyncStream<S> {
     }
 }
 
-impl<S> AsyncRead for AsyncStream<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncRead for AsyncStream<S> {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -266,10 +257,7 @@ where
     }
 }
 
-impl<S> AsyncWrite for AsyncStream<S>
-where
-    S: Unpin + Send + Sync + 'static,
-{
+impl<S> AsyncWrite for AsyncStream<S> {
     fn poll_write(
         mut self: Pin<&mut Self>,
         cx: &mut Context,
