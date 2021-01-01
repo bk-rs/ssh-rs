@@ -1,8 +1,9 @@
 use std::io;
 use std::sync::Arc;
 
-use async_io::Async;
+use async_io::{Async, Timer};
 use ssh2::Listener;
+use std::time::Duration;
 
 use crate::channel::AsyncChannel;
 
@@ -19,13 +20,21 @@ impl<S> AsyncListener<S> {
 
 impl<S> AsyncListener<S> {
     pub async fn accept(&mut self) -> io::Result<AsyncChannel<S>> {
-        let inner = &mut self.inner;
+        // The I/O object for Listener::accept is on the remote SSH server. There is no way to poll
+        // its state so the best we can do is loop and periodically check whether we have a new
+        // connection.
+        let channel = loop {
+            match self.inner.accept() {
+                Ok(channel) => break channel,
+                Err(e)
+                    if io::Error::from(ssh2::Error::from_errno(e.code())).kind()
+                        == io::ErrorKind::WouldBlock => {}
+                Err(e) => return Err(io::Error::from(e)),
+            }
 
-        let ret = self
-            .async_io
-            .write_with(|_| inner.accept().map_err(Into::into))
-            .await;
+            Timer::after(Duration::from_millis(10)).await;
+        };
 
-        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
+        Ok(AsyncChannel::from_parts(channel, self.async_io.clone()))
     }
 }
