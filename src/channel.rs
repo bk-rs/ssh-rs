@@ -193,29 +193,29 @@ impl<S> AsyncRead for AsyncChannel<S> {
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-
-        Pin::new(&mut this.stream(0)).poll_read(cx, buf)
+        Pin::new(&mut self.stream(0)).poll_read(cx, buf)
     }
 }
 
 impl<S> AsyncWrite for AsyncChannel<S> {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-
-        Pin::new(&mut this.stream(0)).poll_write(cx, buf)
+        Pin::new(&mut self.stream(0)).poll_write(cx, buf)
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-
-        Pin::new(&mut this.stream(0)).poll_flush(cx)
+        Pin::new(&mut self.stream(0)).poll_flush(cx)
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-
-        Pin::new(&mut this.stream(0)).poll_close(cx)
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+        loop {
+            match self.inner.close() {
+                Err(err)
+                    if io::Error::from(ssh2::Error::from_errno(err.code())).kind()
+                        == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res.map_err(Into::into)),
+            }
+            ready!(self.async_io.poll_writable(cx))?;
+        }
     }
 }
 
