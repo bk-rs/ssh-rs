@@ -19,10 +19,10 @@ fn main() -> io::Result<()> {
 async fn run() -> io::Result<()> {
     let addr = env::args()
         .nth(1)
-        .unwrap_or_else(|| env::var("ADDR").unwrap_or("127.0.0.1:22".to_owned()));
+        .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
     let username = env::args()
         .nth(2)
-        .unwrap_or_else(|| env::var("USERNAME").unwrap_or("root".to_owned()));
+        .unwrap_or_else(|| env::var("USERNAME").unwrap_or_else(|_| "root".to_owned()));
 
     let addr = addr.to_socket_addrs().unwrap().next().unwrap();
 

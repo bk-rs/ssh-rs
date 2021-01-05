@@ -59,16 +59,16 @@ fn main() -> io::Result<()> {
 async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
     let addr = env::args()
         .nth(1)
-        .unwrap_or_else(|| env::var("ADDR").unwrap_or("127.0.0.1:22".to_owned()));
+        .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
     let username = env::args()
         .nth(2)
-        .unwrap_or_else(|| env::var("USERNAME").unwrap_or("root".to_owned()));
+        .unwrap_or_else(|| env::var("USERNAME").unwrap_or_else(|_| "root".to_owned()));
     let bastion_addr = env::args()
         .nth(3)
-        .unwrap_or_else(|| env::var("BASTION_ADDR").unwrap_or("127.0.0.1:22".to_owned()));
+        .unwrap_or_else(|| env::var("BASTION_ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
     let bastion_username = env::args()
         .nth(4)
-        .unwrap_or_else(|| env::var("BASTION_USERNAME").unwrap_or("root".to_owned()));
+        .unwrap_or_else(|| env::var("BASTION_USERNAME").unwrap_or_else(|_| "root".to_owned()));
 
     let addr = addr.to_socket_addrs().unwrap().next().unwrap();
     let bastion_addr = bastion_addr.to_socket_addrs().unwrap().next().unwrap();
