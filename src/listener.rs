@@ -1,9 +1,9 @@
 use std::io;
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_io::{Async, Timer};
 use ssh2::Listener;
-use std::time::Duration;
 
 use crate::channel::AsyncChannel;
 
