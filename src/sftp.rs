@@ -1,11 +1,11 @@
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use async_io::Async;
-use futures_util::io::{AsyncRead, AsyncWrite};
+use futures_util::io::{AsyncRead, AsyncWrite, AsyncSeek};
 use futures_util::ready;
 use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Sftp};
 
@@ -226,5 +226,21 @@ impl<S> AsyncWrite for AsyncFile<S> {
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
         self.poll_flush(cx)
+    }
+}
+
+impl<S> AsyncSeek for AsyncFile<S> {
+    fn poll_seek(
+        mut self: Pin<&mut Self>, 
+        cx: &mut Context<'_>, 
+        pos: SeekFrom
+    ) -> Poll<io::Result<u64>> {
+        loop {
+            match self.inner.seek(pos) {
+                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
+                res => return Poll::Ready(res),
+            }
+            ready!(self.async_io.poll_readable(cx))?;
+        }
     }
 }
