@@ -131,7 +131,7 @@ impl<S> AsyncSession<S> {
                 ))
             }
         };
-        agent.userauth(username, &identity).await
+        agent.userauth(username, identity).await
     }
 
     pub async fn userauth_pubkey_file(
@@ -437,10 +437,10 @@ impl<S> AsyncSession<S> {
             }
         }
 
-        return Err(io::Error::new(
+        Err(io::Error::new(
             io::ErrorKind::Other,
             "all identities cannot authenticated",
-        ));
+        ))
     }
 }
 
