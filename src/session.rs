@@ -4,9 +4,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[cfg(unix)]
-use std::os::unix::io::{AsRawFd, FromRawFd};
+use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
-use std::os::windows::io::{AsRawSocket, FromRawSocket};
+use std::os::windows::io::AsRawSocket;
 
 use async_io::Async;
 use ssh2::{
@@ -27,14 +27,13 @@ pub struct AsyncSession<S> {
 #[cfg(unix)]
 impl<S> AsyncSession<S>
 where
-    S: AsRawFd + FromRawFd + 'static,
+    S: AsRawFd + 'static,
 {
     pub fn new(stream: Async<S>, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
         let mut session = get_session(configuration)?;
-        session.set_tcp_stream(stream.into_inner()?);
+        session.set_tcp_stream(stream.as_raw_fd());
 
-        let io = unsafe { S::from_raw_fd(session.as_raw_fd()) };
-        let async_io = Arc::new(Async::new(io)?);
+        let async_io = Arc::new(stream);
 
         Ok(Self {
             inner: session,
@@ -46,14 +45,13 @@ where
 #[cfg(windows)]
 impl<S> AsyncSession<S>
 where
-    S: AsRawSocket + FromRawSocket + 'static,
+    S: AsRawSocket + 'static,
 {
     pub fn new(stream: Async<S>, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
         let mut session = get_session(configuration)?;
-        session.set_tcp_stream(stream.into_inner()?);
+        session.set_tcp_stream(stream.as_raw_socket());
 
-        let io = unsafe { S::from_raw_socket(session.as_raw_socket()) };
-        let async_io = Arc::new(Async::new(io)?);
+        let async_io = Arc::new(stream);
 
         Ok(Self {
             inner: session,
