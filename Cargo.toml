@@ -1,26 +1,5 @@
-[package]
-name = "async-ssh2-lite"
-version = "0.2.2"
-authors = ["vkill <vkill.net@gmail.com>"]
-edition = "2018"
-description = "Asynchronous ssh2."
-license = "Apache-2.0 OR MIT"
-repository = "https://github.com/bk-rs/async-ssh2-lite"
-homepage = "https://github.com/bk-rs/async-ssh2-lite"
-documentation = "https://docs.rs/async-ssh2-lite"
-keywords = ["SSH", "SSH2"]
-categories = ["asynchronous", "network-programming"]
-readme = "README.md"
-
-[dependencies]
-ssh2 = { version = "0.9", default-features = false, features = [] }
-async-io = { version = "1.7", default-features = false, features = [] }
-futures-util = { version = "0.3", default-features = false, features = ["io"] }
-
-[features]  
-vendored-openssl = ["ssh2/vendored-openssl"]
-
 [workspace]
 members = [
-    "demos/smol",
+    "async-ssh2-lite",
+    "async-ssh2-lite/demos/*",
 ]
