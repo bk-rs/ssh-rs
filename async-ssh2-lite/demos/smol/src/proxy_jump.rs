@@ -94,8 +94,8 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
         if !bastion_session.authenticated() {
             return Err(bastion_session
                 .last_error()
-                .and_then(|err| Some(io::Error::from(err)))
-                .unwrap_or(io::Error::new(
+                .map( io::Error::from)
+                .unwrap_or_else(||io::Error::new(
                     io::ErrorKind::Other,
                     "bastion unknown userauth error",
                 )));
@@ -196,8 +196,8 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
         if !session.authenticated() {
             return Err(session
                 .last_error()
-                .and_then(|err| Some(io::Error::from(err)))
-                .unwrap_or(io::Error::new(
+                .map(io::Error::from)
+                .unwrap_or_else(||io::Error::new(
                     io::ErrorKind::Other,
                     "unknown userauth error",
                 )));

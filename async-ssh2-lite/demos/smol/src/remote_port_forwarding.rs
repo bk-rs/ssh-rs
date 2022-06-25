@@ -1,6 +1,7 @@
 /*
 cargo run -p async-ssh2-lite-demo-smol --bin remote_port_forwarding 127.0.0.1:22 root 8101
 */
+#![allow(clippy::unused_io_amount)]
 
 use std::env;
 use std::io;
@@ -43,11 +44,8 @@ async fn run() -> io::Result<()> {
     if !session.authenticated() {
         return Err(session
             .last_error()
-            .and_then(|err| Some(io::Error::from(err)))
-            .unwrap_or(io::Error::new(
-                io::ErrorKind::Other,
-                "unknown userauth error",
-            )));
+            .map(io::Error::from)
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error")));
     }
 
     let (mut listener, remote_port) = session

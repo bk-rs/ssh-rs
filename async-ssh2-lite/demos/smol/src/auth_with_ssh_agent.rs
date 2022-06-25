@@ -40,11 +40,8 @@ async fn run() -> io::Result<()> {
     if !session.authenticated() {
         return Err(session
             .last_error()
-            .and_then(|err| Some(io::Error::from(err)))
-            .unwrap_or(io::Error::new(
-                io::ErrorKind::Other,
-                "unknown userauth error",
-            )));
+            .map(io::Error::from)
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error")));
     }
 
     println!("done");

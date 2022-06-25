@@ -38,17 +38,14 @@ async fn run() -> io::Result<()> {
     if !session.authenticated() {
         return Err(session
             .last_error()
-            .and_then(|err| Some(io::Error::from(err)))
-            .unwrap_or(io::Error::new(
-                io::ErrorKind::Other,
-                "unknown userauth error",
-            )));
+            .map(io::Error::from)
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error")));
     }
 
     let mut remote_file = session
         .scp_send(Path::new("/tmp/bar.txt"), 0o644, 10, None)
         .await?;
-    remote_file.write(b"1234567890").await?;
+    remote_file.write_all(b"1234567890").await?;
 
     println!("done");
 
