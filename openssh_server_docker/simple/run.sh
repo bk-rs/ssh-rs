@@ -25,7 +25,7 @@ container_name="openssh_server_${listen_port}"
 
 config_dir="${script_path_root}config"
 keys_dir="${script_path_root}keys"
-hostname="openssh_server_${listen_port}"
+hostname="openssh_server"
 
 cleanup() {
     docker stop ${container_name}
@@ -52,8 +52,6 @@ docker run -d --rm --name ${container_name} \
 sleep 1
 
 if [ -x "$(command -v socat)" ]; then
-    # https://www.compose.com/articles/how-to-talk-raw-redis/
-    # https://gist.github.com/eeddaann/6e2b70e36f7586a556487f663b97760e
     { echo -e "\r\n"; } | socat TCP4:127.0.0.1:${listen_port} stdio
 fi
 
