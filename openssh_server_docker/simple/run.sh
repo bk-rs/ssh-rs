@@ -27,8 +27,12 @@ config_dir="${script_path_root}config"
 keys_dir="${script_path_root}keys"
 hostname="openssh_server"
 
+ssh-add "${keys_dir}/id_rsa"
+
 cleanup() {
     docker stop ${container_name}
+
+    ssh-add -d "${keys_dir}/id_rsa"
 
     sleep 1
 }

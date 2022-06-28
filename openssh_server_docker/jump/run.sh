@@ -35,8 +35,12 @@ keys_dir="${script_path_root}keys"
 hostname_bastion="openssh_server_bastion"
 hostname_intranet="openssh_server_intranet"
 
+ssh-add "${keys_dir}/id_rsa"
+
 cleanup() {
     docker stop ${container_name_bastion} ${container_name_intranet}
+
+    ssh-add -d "${keys_dir}/id_rsa"
 
     sleep 1
 }
@@ -73,7 +77,7 @@ if [ -x "$(command -v socat)" ]; then
     { echo -e "\r\n"; } | socat TCP4:127.0.0.1:${listen_port_intranet} stdio
 fi
 
-echo "ssh user_intranet@127.0.0.1 -p ${listen_port_intranet} -A -J user_bastion@127.0.0.1:${listen_port_bastion} -i keys/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -o ProxyCommand=\"ssh -i keys/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off\" -v"
+echo "ssh user_intranet@172.17.0.1 -p ${listen_port_intranet} -A -J user_bastion@127.0.0.1:${listen_port_bastion} -i keys/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -o ProxyCommand=\"ssh -i keys/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off\" -v"
 
 # 
 echo "callback running..."

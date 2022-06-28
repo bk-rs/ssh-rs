@@ -8,5 +8,7 @@ sudo rm -rf config_intranet/{.ssh,custom-cont-init.d,custom-services.d,logs,ssh_
 
 ./run.sh 8.8_p1-r1-ls82 2223 2224 "sleep 3"
 
+sudo cp ../sshd_enable_AllowTcpForwarding.sh config_bastion/custom-cont-init.d/
+
 ./run.sh 8.8_p1-r1-ls82 2223 2224 "sleep 300"
 ```
