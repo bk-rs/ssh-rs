@@ -1,5 +1,0 @@
-/config_bastion/*
-!/config_bastion/.keep
-
-/config_intranet/*
-!/config_intranet/.keep
