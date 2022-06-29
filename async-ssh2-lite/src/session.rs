@@ -8,20 +8,19 @@ use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
 use std::os::windows::io::AsRawSocket;
 
-use async_io::Async;
 use ssh2::{
-    BlockDirections, DisconnectCode, Error, HashType, HostKeyType, KeyboardInteractivePrompt,
-    KnownHosts, MethodType, ScpFileStat, Session,
+    BlockDirections, DisconnectCode, Error as Ssh2Error, HashType, HostKeyType,
+    KeyboardInteractivePrompt, KnownHosts, MethodType, ScpFileStat, Session,
 };
 
-use crate::agent::AsyncAgent;
-use crate::channel::AsyncChannel;
-use crate::listener::AsyncListener;
-use crate::sftp::AsyncSftp;
+use crate::{
+    agent::AsyncAgent, channel::AsyncChannel, error::Error, listener::AsyncListener,
+    session_stream::AsyncSessionStream, sftp::AsyncSftp,
+};
 
 pub struct AsyncSession<S> {
     inner: Session,
-    async_io: Arc<Async<S>>,
+    stream: Arc<S>,
 }
 
 #[cfg(unix)]
@@ -29,15 +28,15 @@ impl<S> AsyncSession<S>
 where
     S: AsRawFd + 'static,
 {
-    pub fn new(stream: Async<S>, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
+    pub fn new(stream: S, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
         let mut session = get_session(configuration)?;
         session.set_tcp_stream(stream.as_raw_fd());
 
-        let async_io = Arc::new(stream);
+        let stream = Arc::new(stream);
 
         Ok(Self {
             inner: session,
-            async_io,
+            stream,
         })
     }
 }
@@ -47,15 +46,15 @@ impl<S> AsyncSession<S>
 where
     S: AsRawSocket + 'static,
 {
-    pub fn new(stream: Async<S>, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
+    pub fn new(stream: S, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
         let mut session = get_session(configuration)?;
         session.set_tcp_stream(stream.as_raw_socket());
 
-        let async_io = Arc::new(stream);
+        let stream = Arc::new(stream);
 
         Ok(Self {
             inner: session,
-            async_io,
+            stream,
         })
     }
 }
@@ -78,39 +77,35 @@ impl<S> AsyncSession<S> {
     }
 }
 
-impl<S> AsyncSession<S> {
-    pub async fn handshake(&mut self) -> io::Result<()> {
+impl<S> AsyncSession<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
+    pub async fn handshake(&mut self) -> Result<(), Error> {
+        let sess = self.inner.clone();
         let inner = &mut self.inner;
 
-        self.async_io
-            .write_with(|_| inner.handshake().map_err(Into::into))
+        self.stream
+            .read_and_write_with(&sess, || inner.handshake())
             .await
     }
 
-    pub async fn userauth_password(&self, username: &str, password: &str) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
-                    .userauth_password(username, password)
-                    .map_err(Into::into)
+    pub async fn userauth_password(&self, username: &str, password: &str) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner.userauth_password(username, password)
             })
             .await
     }
 
-    pub async fn userauth_keyboard_interactive<P: KeyboardInteractivePrompt>(
+    pub async fn userauth_keyboard_interactive<P: KeyboardInteractivePrompt + Send>(
         &self,
         username: &str,
         prompter: &mut P,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
-                    .userauth_keyboard_interactive(username, prompter)
-                    .map_err(Into::into)
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner.userauth_keyboard_interactive(username, prompter)
             })
             .await
     }
@@ -138,14 +133,11 @@ impl<S> AsyncSession<S> {
         pubkey: Option<&Path>,
         privatekey: &Path,
         passphrase: Option<&str>,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner
                     .userauth_pubkey_file(username, pubkey, privatekey, passphrase)
-                    .map_err(Into::into)
             })
             .await
     }
@@ -157,12 +149,10 @@ impl<S> AsyncSession<S> {
         pubkeydata: Option<&str>,
         privatekeydata: &str,
         passphrase: Option<&str>,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner
                     .userauth_pubkey_memory(username, pubkeydata, privatekeydata, passphrase)
                     .map_err(Into::into)
             })
@@ -177,12 +167,10 @@ impl<S> AsyncSession<S> {
         passphrase: Option<&str>,
         hostname: &str,
         local_username: Option<&str>,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner
                     .userauth_hostbased_file(
                         username,
                         publickey,
@@ -200,19 +188,17 @@ impl<S> AsyncSession<S> {
         self.inner.authenticated()
     }
 
-    pub async fn auth_methods(&self, username: &str) -> io::Result<&str> {
+    pub async fn auth_methods(&self, username: &str) -> Result<&str, Error> {
         let inner = &self.inner;
 
-        self.async_io
-            .write_with(|_| inner.auth_methods(username).map_err(Into::into))
+        self.stream
+            .read_and_write_with(&self.inner, || inner.auth_methods(username))
             .await
     }
 
-    pub async fn method_pref(&self, method_type: MethodType, prefs: &str) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.method_pref(method_type, prefs).map_err(Into::into))
+    pub async fn method_pref(&self, method_type: MethodType, prefs: &str) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || self.inner.method_pref(method_type, prefs))
             .await
     }
 
@@ -220,18 +206,20 @@ impl<S> AsyncSession<S> {
         self.inner.methods(method_type)
     }
 
-    pub async fn supported_algs(&self, method_type: MethodType) -> io::Result<Vec<&'static str>> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.supported_algs(method_type).map_err(Into::into))
+    pub async fn supported_algs(
+        &self,
+        method_type: MethodType,
+    ) -> Result<Vec<&'static str>, Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || self.inner.supported_algs(method_type))
             .await
     }
 
     pub fn agent(&self) -> io::Result<AsyncAgent<S>> {
-        let ret = self.inner.agent().map_err(Into::into);
+        let ret = self.inner.agent();
 
-        ret.map(|agent| AsyncAgent::from_parts(agent, self.async_io.clone()))
+        // ret.map(|agent| AsyncAgent::from_parts(agent, self.stream.clone()))
+        todo!()
     }
 
     pub fn known_hosts(&self) -> io::Result<KnownHosts> {
@@ -239,14 +227,13 @@ impl<S> AsyncSession<S> {
     }
 
     pub async fn channel_session(&self) -> io::Result<AsyncChannel<S>> {
-        let inner = &self.inner;
-
         let ret = self
-            .async_io
-            .write_with(|_| inner.channel_session().map_err(Into::into))
+            .stream
+            .read_and_write_with(&self.inner, || self.inner.channel_session())
             .await;
 
-        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
+        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
+        todo!()
     }
 
     pub async fn channel_direct_tcpip(
@@ -255,18 +242,15 @@ impl<S> AsyncSession<S> {
         port: u16,
         src: Option<(&str, u16)>,
     ) -> io::Result<AsyncChannel<S>> {
-        let inner = &self.inner;
-
         let ret = self
-            .async_io
-            .write_with(|_| {
-                inner
-                    .channel_direct_tcpip(host, port, src)
-                    .map_err(Into::into)
+            .stream
+            .read_and_write_with(&self.inner, || {
+                self.inner.channel_direct_tcpip(host, port, src)
             })
             .await;
 
-        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
+        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
+        todo!()
     }
 
     pub async fn channel_forward_listen(
@@ -278,36 +262,34 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         let ret = self
-            .async_io
-            .write_with(|_| {
-                inner
-                    .channel_forward_listen(remote_port, host, queue_maxsize)
-                    .map_err(Into::into)
+            .stream
+            .read_and_write_with(&self.inner, || {
+                inner.channel_forward_listen(remote_port, host, queue_maxsize)
             })
             .await;
 
-        ret.map(|(listener, port)| {
-            (
-                AsyncListener::from_parts(listener, self.async_io.clone()),
-                port,
-            )
-        })
+        // ret.map(|(listener, port)| {
+        //     (
+        //         AsyncListener::from_parts(listener, self.stream.clone()),
+        //         port,
+        //     )
+        // })
+        todo!()
     }
 
     pub async fn scp_recv(&self, path: &Path) -> io::Result<(AsyncChannel<S>, ScpFileStat)> {
-        let inner = &self.inner;
-
         let ret = self
-            .async_io
-            .write_with(|_| inner.scp_recv(path).map_err(Into::into))
+            .stream
+            .read_and_write_with(&self.inner, || self.inner.scp_recv(path))
             .await;
 
-        ret.map(|(channel, scp_file_stat)| {
-            (
-                AsyncChannel::from_parts(channel, self.async_io.clone()),
-                scp_file_stat,
-            )
-        })
+        // ret.map(|(channel, scp_file_stat)| {
+        //     (
+        //         AsyncChannel::from_parts(channel, self.stream.clone()),
+        //         scp_file_stat,
+        //     )
+        // })
+        todo!()
     }
 
     pub async fn scp_send(
@@ -317,29 +299,25 @@ impl<S> AsyncSession<S> {
         size: u64,
         times: Option<(u64, u64)>,
     ) -> io::Result<AsyncChannel<S>> {
-        let inner = &self.inner;
-
         let ret = self
-            .async_io
-            .write_with(|_| {
-                inner
-                    .scp_send(remote_path, mode, size, times)
-                    .map_err(Into::into)
+            .stream
+            .read_and_write_with(&self.inner, || {
+                self.inner.scp_send(remote_path, mode, size, times)
             })
             .await;
 
-        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
+        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
+        todo!()
     }
 
     pub async fn sftp(&self) -> io::Result<AsyncSftp<S>> {
-        let inner = &self.inner;
-
         let ret = self
-            .async_io
-            .write_with(|_| inner.sftp().map_err(Into::into))
+            .stream
+            .read_and_write_with(&self.inner, || self.inner.sftp().map_err(Into::into))
             .await;
 
-        ret.map(|sftp| AsyncSftp::from_parts(sftp, self.async_io.clone()))
+        // ret.map(|sftp| AsyncSftp::from_parts(sftp, self.stream.clone()))
+        todo!()
     }
 
     pub async fn channel_open(
@@ -352,15 +330,14 @@ impl<S> AsyncSession<S> {
         let inner = &self.inner;
 
         let ret = self
-            .async_io
-            .write_with(|_| {
-                inner
-                    .channel_open(channel_type, window_size, packet_size, message)
-                    .map_err(Into::into)
+            .stream
+            .read_and_write_with(&self.inner, || {
+                inner.channel_open(channel_type, window_size, packet_size, message)
             })
             .await;
 
-        ret.map(|channel| AsyncChannel::from_parts(channel, self.async_io.clone()))
+        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
+        todo!()
     }
 
     pub fn host_key(&self) -> Option<(&[u8], HostKeyType)> {
@@ -371,11 +348,9 @@ impl<S> AsyncSession<S> {
         self.inner.host_key_hash(hash)
     }
 
-    pub async fn keepalive_send(&self) -> io::Result<u32> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.keepalive_send().map_err(Into::into))
+    pub async fn keepalive_send(&self) -> Result<u32, Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || self.inner.keepalive_send())
             .await
     }
 
@@ -384,14 +359,10 @@ impl<S> AsyncSession<S> {
         reason: Option<DisconnectCode>,
         description: &str,
         lang: Option<&str>,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| {
-                inner
-                    .disconnect(reason, description, lang)
-                    .map_err(Into::into)
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.inner, || {
+                self.inner.disconnect(reason, description, lang)
             })
             .await
     }
@@ -405,40 +376,42 @@ impl<S> AsyncSession<S> {
 // extension
 //
 impl<S> AsyncSession<S> {
-    pub fn last_error(&self) -> Option<Error> {
-        Error::last_session_error(&self.inner)
+    pub fn last_error(&self) -> Option<Ssh2Error> {
+        Ssh2Error::last_session_error(&self.inner)
     }
 
     pub async fn userauth_agent_with_try_next(&self, username: &str) -> io::Result<()> {
-        let mut agent = self.agent()?;
-        agent.connect().await?;
-        agent.list_identities().await?;
-        let identities = agent.identities()?;
+        // let mut agent = self.agent()?;
+        // agent.connect().await?;
+        // agent.list_identities().await?;
+        // let identities = agent.identities()?;
 
-        if identities.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "no identities found in the ssh agent",
-            ));
-        }
+        // if identities.is_empty() {
+        //     return Err(io::Error::new(
+        //         io::ErrorKind::Other,
+        //         "no identities found in the ssh agent",
+        //     ));
+        // }
 
-        for identity in identities {
-            match agent.userauth(username, &identity).await {
-                Ok(_) => {
-                    if self.authenticated() {
-                        return Ok(());
-                    }
-                }
-                Err(_) => {
-                    continue;
-                }
-            }
-        }
+        // for identity in identities {
+        //     match agent.userauth(username, &identity).await {
+        //         Ok(_) => {
+        //             if self.authenticated() {
+        //                 return Ok(());
+        //             }
+        //         }
+        //         Err(_) => {
+        //             continue;
+        //         }
+        //     }
+        // }
 
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "all identities cannot authenticated",
-        ))
+        // Err(io::Error::new(
+        //     io::ErrorKind::Other,
+        //     "all identities cannot authenticated",
+        // ))
+
+        todo!()
     }
 }
 

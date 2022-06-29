@@ -4,6 +4,7 @@ cargo run -p async-ssh2-lite-demo-smol --bin remote_port_forwarding 127.0.0.1:22
 #![allow(clippy::unused_io_amount)]
 
 use std::env;
+use std::error;
 use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::str;
@@ -14,11 +15,11 @@ use futures::{AsyncReadExt, AsyncWriteExt};
 
 use async_ssh2_lite::AsyncSession;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     block_on(run())
 }
 
-async fn run() -> io::Result<()> {
+async fn run() -> Result<(), Box<dyn error::Error>> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
@@ -45,7 +46,8 @@ async fn run() -> io::Result<()> {
         return Err(session
             .last_error()
             .map(io::Error::from)
-            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error")));
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error"))
+            .into());
     }
 
     let (mut listener, remote_port) = session

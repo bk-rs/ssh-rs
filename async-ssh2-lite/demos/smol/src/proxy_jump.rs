@@ -5,6 +5,7 @@ cargo run -p async-ssh2-lite-demo-smol --bin proxy_jump intranet.com:22 intranet
 #![recursion_limit = "256"]
 
 use std::env;
+use std::error;
 use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
@@ -26,13 +27,13 @@ use tempfile::tempdir;
 
 use async_ssh2_lite::AsyncSession;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     let ex = Executor::new();
     let ex = Arc::new(ex);
     let local_ex = LocalExecutor::new();
     let (trigger, shutdown) = async_channel::unbounded::<()>();
 
-    let ret_vec: (_, io::Result<()>) = Parallel::new()
+    let ret_vec: (_, Result<(), Box<dyn error::Error>>) = Parallel::new()
         .each(0..4, |_| {
             block_on(ex.run(async {
                 shutdown
@@ -56,7 +57,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
+async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
@@ -85,7 +86,7 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
 
         let mut bastion_session = AsyncSession::new(bastion_stream, None)?;
 
-        bastion_session.handshake().await?;
+        bastion_session.handshake().await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
 
         bastion_session
             .userauth_agent(bastion_username.as_ref())
@@ -189,7 +190,7 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
 
         //
         let mut session = AsyncSession::new(forward_stream_s, None)?;
-        session.handshake().await?;
+        session.handshake().await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
 
         session.userauth_agent(username.as_ref()).await?;
 
@@ -211,7 +212,7 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
         channel.close().await?;
         println!("channel exit_status: {}", channel.exit_status()?);
 
-        session.disconnect(None, "foo", None).await?;
+        session.disconnect(None, "foo", None).await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
 
         sender_with_main.send("done_with_main").await.unwrap();
 

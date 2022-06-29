@@ -3,6 +3,7 @@ cargo run -p async-ssh2-lite-demo-smol --bin upload_file 127.0.0.1:22 root
 */
 
 use std::env;
+use std::error;
 use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::Path;
@@ -13,11 +14,11 @@ use futures::AsyncWriteExt;
 
 use async_ssh2_lite::AsyncSession;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     block_on(run())
 }
 
-async fn run() -> io::Result<()> {
+async fn run() -> Result<(), Box<dyn error::Error>> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));
@@ -39,7 +40,8 @@ async fn run() -> io::Result<()> {
         return Err(session
             .last_error()
             .map(io::Error::from)
-            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error")));
+            .unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "unknown userauth error"))
+            .into());
     }
 
     let mut remote_file = session

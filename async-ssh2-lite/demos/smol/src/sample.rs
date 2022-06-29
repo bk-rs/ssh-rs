@@ -3,6 +3,7 @@ cargo run -p async-ssh2-lite-demo-smol --bin sample 127.0.0.1:22 root
 */
 
 use std::env;
+use std::error;
 use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
@@ -16,7 +17,7 @@ use futures::AsyncReadExt;
 
 use async_ssh2_lite::{AsyncSession, SessionConfiguration};
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     let ex = Executor::new();
     let ex = Arc::new(ex);
     let local_ex = LocalExecutor::new();
@@ -64,40 +65,41 @@ async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
         let (sender, receiver) = async_channel::unbounded();
         receivers.push(receiver);
 
-        let task: Task<io::Result<()>> = ex.clone().spawn(async move {
-            println!("{} {:?} connect", i, thread::current().id());
-            let stream =
-                Async::<TcpStream>::connect(addr.to_socket_addrs().unwrap().next().unwrap())
-                    .await?;
+        let task: Task<Result<(), Box<dyn error::Error + Send + Sync>>> =
+            ex.clone().spawn(async move {
+                println!("{} {:?} connect", i, thread::current().id());
+                let stream =
+                    Async::<TcpStream>::connect(addr.to_socket_addrs().unwrap().next().unwrap())
+                        .await?;
 
-            let mut session_configuration = SessionConfiguration::new();
-            session_configuration.set_timeout(500);
-            let mut session = AsyncSession::new(stream, Some(session_configuration))?;
+                let mut session_configuration = SessionConfiguration::new();
+                session_configuration.set_timeout(500);
+                let mut session = AsyncSession::new(stream, Some(session_configuration))?;
 
-            println!("{} {:?} handshake", i, thread::current().id());
-            session.handshake().await?;
+                println!("{} {:?} handshake", i, thread::current().id());
+                session.handshake().await?;
 
-            println!("{} {:?} userauth_agent", i, thread::current().id());
-            session.userauth_agent(username.as_ref()).await?;
+                println!("{} {:?} userauth_agent", i, thread::current().id());
+                session.userauth_agent(username.as_ref()).await?;
 
-            assert!(session.authenticated());
+                assert!(session.authenticated());
 
-            println!("{} {:?} channel_session", i, thread::current().id());
-            let mut channel = session.channel_session().await?;
+                println!("{} {:?} channel_session", i, thread::current().id());
+                let mut channel = session.channel_session().await?;
 
-            println!("{} {:?} exec", i, thread::current().id());
-            channel.exec("hostname").await?;
+                println!("{} {:?} exec", i, thread::current().id());
+                channel.exec("hostname").await?;
 
-            println!("{} {:?} read", i, thread::current().id());
-            let mut s = String::new();
-            channel.read_to_string(&mut s).await?;
-            println!("{} hostname: {}", i, s);
+                println!("{} {:?} read", i, thread::current().id());
+                let mut s = String::new();
+                channel.read_to_string(&mut s).await?;
+                println!("{} hostname: {}", i, s);
 
-            println!("{} {:?} close", i, thread::current().id());
-            channel.close().await?;
+                println!("{} {:?} close", i, thread::current().id());
+                channel.close().await?;
 
-            Ok(())
-        });
+                Ok(())
+            });
 
         ex.clone()
             .spawn(async move {
