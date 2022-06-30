@@ -8,7 +8,7 @@ pub(super) const USERNAME: &str = "linuxserver.io";
 pub(super) const PASSWORD: &str = "password";
 
 //
-pub(super) fn get_conn_addr() -> Result<SocketAddr, Box<dyn error::Error>> {
+pub(super) fn get_connect_addr() -> Result<SocketAddr, Box<dyn error::Error>> {
     let port = env::var("SSH_SERVER_TCP_PORT")?;
 
     let ip_addr = "127.0.0.1".parse::<IpAddr>()?;

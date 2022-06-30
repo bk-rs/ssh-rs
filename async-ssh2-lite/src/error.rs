@@ -8,7 +8,7 @@ use ssh2::Error as Ssh2Error;
 pub enum Error {
     Ssh2(Ssh2Error),
     Io(IoError),
-    Other(Box<dyn std::error::Error + Send + Sync>),
+    Other(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl fmt::Display for Error {

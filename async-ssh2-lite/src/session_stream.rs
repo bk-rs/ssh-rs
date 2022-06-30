@@ -58,3 +58,78 @@ where
         }
     }
 }
+
+//
+#[cfg(feature = "tokio")]
+#[async_trait]
+impl AsyncSessionStream for crate::TokioTcpStream {
+    async fn read_and_write_with<R>(
+        &self,
+        sess: &Session,
+        op: impl FnMut() -> Result<R, Ssh2Error> + Send,
+    ) -> Result<R, Error> {
+        let mut op = op;
+
+        loop {
+            match op() {
+                Ok(x) => return Ok(x),
+                Err(err) => {
+                    if IoError::from(Ssh2Error::from_errno(err.code())).kind()
+                        != IoErrorKind::WouldBlock
+                    {
+                        return Err(err.into());
+                    }
+                }
+            }
+
+            match sess.block_directions() {
+                BlockDirections::None => {
+                    unreachable!("")
+                }
+                BlockDirections::Inbound => self.readable().await?,
+                BlockDirections::Outbound => self.writable().await?,
+                BlockDirections::Both => {
+                    self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
+                        .await?;
+                }
+            }
+        }
+    }
+}
+
+#[cfg(all(unix, feature = "tokio"))]
+#[async_trait]
+impl AsyncSessionStream for crate::TokioUnixStream {
+    async fn read_and_write_with<R>(
+        &self,
+        sess: &Session,
+        op: impl FnMut() -> Result<R, Ssh2Error> + Send,
+    ) -> Result<R, Error> {
+        let mut op = op;
+
+        loop {
+            match op() {
+                Ok(x) => return Ok(x),
+                Err(err) => {
+                    if IoError::from(Ssh2Error::from_errno(err.code())).kind()
+                        != IoErrorKind::WouldBlock
+                    {
+                        return Err(err.into());
+                    }
+                }
+            }
+
+            match sess.block_directions() {
+                BlockDirections::None => {
+                    unreachable!("")
+                }
+                BlockDirections::Inbound => self.readable().await?,
+                BlockDirections::Outbound => self.writable().await?,
+                BlockDirections::Both => {
+                    self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
+                        .await?;
+                }
+            }
+        }
+    }
+}

@@ -5,10 +5,6 @@ authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2021"
 
 [[bin]]
-name = "auth_with_password"
-path = "src/auth_with_password.rs"
-
-[[bin]]
 name = "auth_with_pubkey"
 path = "src/auth_with_pubkey.rs"
 

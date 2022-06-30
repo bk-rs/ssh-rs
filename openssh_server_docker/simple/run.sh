@@ -54,6 +54,8 @@ docker run -d --rm --name ${container_name} \
     -v "${script_path_root}../sshd_append_PubkeyAcceptedAlgorithms.sh":/etc/cont-init.d/51-sshd_append_PubkeyAcceptedAlgorithms.sh \
     -v "${script_path_root}../sshd_yes_AllowTcpForwarding.sh":/etc/cont-init.d/51-sshd_yes_AllowTcpForwarding.sh \
     -v "${script_path_root}../sshd_yes_PermitRootLogin.sh":/etc/cont-init.d/51-sshd_yes_PermitRootLogin.sh \
+    -v "${script_path_root}../sshd_increase_MaxSessions.sh":/etc/cont-init.d/51-sshd_increase_MaxSessions.sh \
+    -v "${script_path_root}../sshd_increase_MaxStartups.sh":/etc/cont-init.d/51-sshd_increase_MaxStartups.sh \
     --hostname ${hostname} \
     -p ${listen_port}:2222\
     -e PUID=`id -u` \
