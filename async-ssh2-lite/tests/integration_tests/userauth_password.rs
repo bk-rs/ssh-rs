@@ -18,10 +18,10 @@ async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
     let futures = (1_usize..=10)
         .into_iter()
         .map(|_| async {
-            let session =
+            let mut session =
                 AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None)
                     .await?;
-            r#do(session).await?;
+            exec_userauth_password(&mut session).await?;
             Result::<_, Box<dyn error::Error>>::Ok(())
         })
         .collect::<Vec<_>>();
@@ -42,12 +42,12 @@ fn with_async_io() -> Result<(), Box<dyn error::Error>> {
         let futures = (1_usize..=10)
             .into_iter()
             .map(|_| async {
-                let session = AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(
+                let mut session = AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(
                     get_connect_addr()?,
                     None,
                 )
                 .await?;
-                r#do(session).await?;
+                exec_userauth_password(&mut session).await?;
                 Result::<_, Box<dyn error::Error>>::Ok(())
             })
             .collect::<Vec<_>>();
@@ -60,8 +60,8 @@ fn with_async_io() -> Result<(), Box<dyn error::Error>> {
     })
 }
 
-async fn r#do<S: AsyncSessionStream + Send + Sync>(
-    mut session: AsyncSession<S>,
+async fn exec_userauth_password<S: AsyncSessionStream + Send + Sync>(
+    session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
 

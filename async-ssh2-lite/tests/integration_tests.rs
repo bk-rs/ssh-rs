@@ -6,4 +6,10 @@ mod integration_tests {
 
     #[cfg(test)]
     mod userauth_password;
+
+    #[cfg(test)]
+    mod userauth_pubkey;
+
+    #[cfg(test)]
+    mod userauth_agent;
 }

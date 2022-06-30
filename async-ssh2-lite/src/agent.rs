@@ -1,4 +1,3 @@
-use std::io;
 use std::sync::Arc;
 
 #[cfg(unix)]
@@ -6,15 +5,15 @@ use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
 use std::os::windows::io::AsRawSocket;
 
-use async_io::Async;
-use ssh2::{Agent, PublicKey};
+use ssh2::{Agent, PublicKey, Session};
 
-use crate::{error::Error, session::get_session};
+use crate::{error::Error, session::get_session, session_stream::AsyncSessionStream};
 
 //
 pub struct AsyncAgent<S> {
     inner: Agent,
-    async_io: Arc<Async<S>>,
+    sess: Session,
+    stream: Arc<S>,
 }
 
 #[cfg(unix)]
@@ -22,17 +21,18 @@ impl<S> AsyncAgent<S>
 where
     S: AsRawFd + 'static,
 {
-    pub fn new(stream: Async<S>) -> Result<Self, Error> {
+    pub fn new(stream: S) -> Result<Self, Error> {
         let mut session = get_session(None)?;
         session.set_tcp_stream(stream.as_raw_fd());
 
-        let async_io = Arc::new(stream);
+        let stream = Arc::new(stream);
 
         let agent = session.agent()?;
 
         Ok(Self {
             inner: agent,
-            async_io,
+            sess: session,
+            stream,
         })
     }
 }
@@ -42,61 +42,63 @@ impl<S> AsyncAgent<S>
 where
     S: AsRawSocket + 'static,
 {
-    pub fn new(stream: Async<S>) -> io::Result<Self> {
+    pub fn new(stream: S) -> Result<Self, Error> {
         let mut session = get_session(None)?;
         session.set_tcp_stream(stream.as_raw_socket());
 
-        let async_io = Arc::new(stream);
+        let stream = Arc::new(stream);
 
         let agent = session.agent()?;
 
         Ok(Self {
             inner: agent,
-            async_io,
+            sess: session,
+            stream,
         })
     }
 }
 
 impl<S> AsyncAgent<S> {
-    pub(crate) fn from_parts(inner: Agent, async_io: Arc<Async<S>>) -> Self {
-        Self { inner, async_io }
+    pub(crate) fn from_parts(inner: Agent, sess: Session, stream: Arc<S>) -> Self {
+        Self {
+            inner,
+            sess,
+            stream,
+        }
     }
 }
 
 impl<S> AsyncAgent<S> {
-    pub async fn connect(&mut self) -> io::Result<()> {
-        let inner = &mut self.inner;
-
-        self.async_io
-            .write_with(|_| inner.connect().map_err(Into::into))
-            .await
-    }
-
-    pub async fn disconnect(&mut self) -> io::Result<()> {
-        let inner = &mut self.inner;
-
-        self.async_io
-            .write_with(|_| inner.disconnect().map_err(Into::into))
-            .await
-    }
-
-    pub async fn list_identities(&mut self) -> io::Result<()> {
-        let inner = &mut self.inner;
-
-        self.async_io
-            .write_with(|_| inner.list_identities().map_err(Into::into))
-            .await
-    }
-
-    pub fn identities(&self) -> io::Result<Vec<PublicKey>> {
+    pub fn identities(&self) -> Result<Vec<PublicKey>, Error> {
         self.inner.identities().map_err(Into::into)
     }
+}
 
-    pub async fn userauth(&self, username: &str, identity: &PublicKey) -> io::Result<()> {
-        let inner = &self.inner;
+impl<S> AsyncAgent<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
+    pub async fn connect(&mut self) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.sess, || self.inner.connect())
+            .await
+    }
 
-        self.async_io
-            .write_with(|_| inner.userauth(username, identity).map_err(Into::into))
+    pub async fn disconnect(&mut self) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.sess, || self.inner.disconnect())
+            .await
+    }
+
+    pub async fn list_identities(&mut self) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.sess, || self.inner.list_identities())
+            .await
+    }
+
+    pub async fn userauth(&self, username: &str, identity: &PublicKey) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(&self.sess, || self.inner.userauth(username, identity))
             .await
     }
 }

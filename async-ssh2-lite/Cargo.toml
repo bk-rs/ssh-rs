@@ -13,7 +13,7 @@ categories = ["asynchronous", "network-programming"]
 readme = "README.md"
 
 [features]
-default = ["async-io", "tokio"]
+default = ["async-io", "tokio", "_integration_tests"]
 
 vendored-openssl = ["ssh2/vendored-openssl"]
 

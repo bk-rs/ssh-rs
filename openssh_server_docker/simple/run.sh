@@ -37,11 +37,14 @@ hostname="openssh_server"
 chmod 600 "${keys_dir}/id_rsa"
 chmod 600 "${keys_dir}/id_dsa"
 ssh-add "${keys_dir}/id_rsa"
+ssh-add "${keys_dir}/id_dsa"
 
 cleanup() {
+    docker logs ${container_name} -n 10
     docker stop ${container_name}
 
     ssh-add -d "${keys_dir}/id_rsa"
+    ssh-add -d "${keys_dir}/id_dsa"
 
     sleep 1
 }

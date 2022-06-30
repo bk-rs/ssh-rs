@@ -8,7 +8,7 @@ use std::os::windows::io::AsRawSocket;
 
 use ssh2::{
     BlockDirections, DisconnectCode, Error as Ssh2Error, HashType, HostKeyType,
-    KeyboardInteractivePrompt, KnownHosts, MethodType, ScpFileStat, Session,
+    KeyboardInteractivePrompt, KnownHosts, MethodType, PublicKey, ScpFileStat, Session,
 };
 
 use crate::{
@@ -174,8 +174,7 @@ where
             Some(identity) => identity,
             None => return Err(Error::Other("no identities found in the ssh agent".into())),
         };
-        // agent.userauth(username, identity).await
-        todo!()
+        agent.userauth(username, identity).await
     }
 
     pub async fn userauth_pubkey_file(
@@ -205,7 +204,6 @@ where
             .read_and_write_with(&self.inner, || {
                 self.inner
                     .userauth_pubkey_memory(username, pubkeydata, privatekeydata, passphrase)
-                    .map_err(Into::into)
             })
             .await
     }
@@ -221,16 +219,14 @@ where
     ) -> Result<(), Error> {
         self.stream
             .read_and_write_with(&self.inner, || {
-                self.inner
-                    .userauth_hostbased_file(
-                        username,
-                        publickey,
-                        privatekey,
-                        passphrase,
-                        hostname,
-                        local_username,
-                    )
-                    .map_err(Into::into)
+                self.inner.userauth_hostbased_file(
+                    username,
+                    publickey,
+                    privatekey,
+                    passphrase,
+                    hostname,
+                    local_username,
+                )
             })
             .await
     }
@@ -267,8 +263,11 @@ where
     pub fn agent(&self) -> Result<AsyncAgent<S>, Error> {
         let agent = self.inner.agent()?;
 
-        // ret.map(|agent| AsyncAgent::from_parts(agent, self.stream.clone()))
-        todo!()
+        Ok(AsyncAgent::from_parts(
+            agent,
+            self.inner.clone(),
+            self.stream.clone(),
+        ))
     }
 
     pub fn known_hosts(&self) -> Result<KnownHosts, Error> {
@@ -361,7 +360,7 @@ where
     pub async fn sftp(&self) -> Result<AsyncSftp<S>, Error> {
         let sftp = self
             .stream
-            .read_and_write_with(&self.inner, || self.inner.sftp().map_err(Into::into))
+            .read_and_write_with(&self.inner, || self.inner.sftp())
             .await?;
 
         // ret.map(|sftp| AsyncSftp::from_parts(sftp, self.stream.clone()))
@@ -422,43 +421,52 @@ where
 //
 // extension
 //
-impl<S> AsyncSession<S> {
+impl<S> AsyncSession<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
     pub fn last_error(&self) -> Option<Ssh2Error> {
         Ssh2Error::last_session_error(&self.inner)
     }
 
     pub async fn userauth_agent_with_try_next(&self, username: &str) -> Result<(), Error> {
-        // let mut agent = self.agent()?;
-        // agent.connect().await?;
-        // agent.list_identities().await?;
-        // let identities = agent.identities()?;
+        self.userauth_agent_with_try_next_with_callback(username, |identities| identities)
+            .await
+    }
 
-        // if identities.is_empty() {
-        //     return Err(io::Error::new(
-        //         io::ErrorKind::Other,
-        //         "no identities found in the ssh agent",
-        //     ));
-        // }
+    pub async fn userauth_agent_with_try_next_with_callback<CB>(
+        &self,
+        username: &str,
+        mut cb: CB,
+    ) -> Result<(), Error>
+    where
+        CB: FnMut(Vec<PublicKey>) -> Vec<PublicKey>,
+    {
+        let mut agent = self.agent()?;
+        agent.connect().await?;
+        agent.list_identities().await?;
+        let identities = agent.identities()?;
 
-        // for identity in identities {
-        //     match agent.userauth(username, &identity).await {
-        //         Ok(_) => {
-        //             if self.authenticated() {
-        //                 return Ok(());
-        //             }
-        //         }
-        //         Err(_) => {
-        //             continue;
-        //         }
-        //     }
-        // }
+        if identities.is_empty() {
+            return Err(Error::Other("no identities found in the ssh agent".into()));
+        }
 
-        // Err(io::Error::new(
-        //     io::ErrorKind::Other,
-        //     "all identities cannot authenticated",
-        // ))
+        let identities = cb(identities);
 
-        todo!()
+        for identity in identities {
+            match agent.userauth(username, &identity).await {
+                Ok(_) => {
+                    if self.authenticated() {
+                        return Ok(());
+                    }
+                }
+                Err(_err) => {
+                    continue;
+                }
+            }
+        }
+
+        Err(Error::Other("all identities cannot authenticated".into()))
     }
 }
 

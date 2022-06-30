@@ -19,6 +19,30 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 //
+impl Error {
+    pub fn as_ssh2(&self) -> Option<&Ssh2Error> {
+        match self {
+            Self::Ssh2(err) => Some(err),
+            _ => None,
+        }
+    }
+
+    pub fn as_io(&self) -> Option<&IoError> {
+        match self {
+            Self::Io(err) => Some(err),
+            _ => None,
+        }
+    }
+
+    pub fn as_other(&self) -> Option<&(dyn std::error::Error + Send + Sync + 'static)> {
+        match self {
+            Self::Other(err) => Some(err.as_ref()),
+            _ => None,
+        }
+    }
+}
+
+//
 impl From<Ssh2Error> for Error {
     fn from(err: Ssh2Error) -> Self {
         Self::Ssh2(err)
