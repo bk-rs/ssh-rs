@@ -1,7 +1,5 @@
-use std::io;
-use std::path::Path;
-use std::sync::Arc;
-use std::time::Duration;
+use core::time::Duration;
+use std::{path::Path, sync::Arc};
 
 #[cfg(unix)]
 use std::os::unix::io::AsRawFd;
@@ -18,6 +16,7 @@ use crate::{
     session_stream::AsyncSessionStream, sftp::AsyncSftp,
 };
 
+//
 pub struct AsyncSession<S> {
     inner: Session,
     stream: Arc<S>,
@@ -28,7 +27,10 @@ impl<S> AsyncSession<S>
 where
     S: AsRawFd + 'static,
 {
-    pub fn new(stream: S, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
+    pub fn new(
+        stream: S,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
         let mut session = get_session(configuration)?;
         session.set_tcp_stream(stream.as_raw_fd());
 
@@ -46,7 +48,10 @@ impl<S> AsyncSession<S>
 where
     S: AsRawSocket + 'static,
 {
-    pub fn new(stream: S, configuration: Option<SessionConfiguration>) -> io::Result<Self> {
+    pub fn new(
+        stream: S,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
         let mut session = get_session(configuration)?;
         session.set_tcp_stream(stream.as_raw_socket());
 
@@ -56,6 +61,56 @@ where
             inner: session,
             stream,
         })
+    }
+}
+
+#[cfg(feature = "async-io")]
+impl AsyncSession<crate::AsyncIoTcpStream> {
+    pub async fn connect<A: Into<std::net::SocketAddr>>(
+        addr: A,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
+        let stream = crate::AsyncIoTcpStream::connect(addr).await?;
+
+        Self::new(stream, configuration)
+    }
+}
+
+#[cfg(all(unix, feature = "async-io"))]
+impl AsyncSession<crate::AsyncIoUnixStream> {
+    #[cfg(unix)]
+    pub async fn connect<P: AsRef<Path>>(
+        path: P,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
+        let stream = crate::AsyncIoUnixStream::connect(path).await?;
+
+        Self::new(stream, configuration)
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl AsyncSession<crate::TokioTcpStream> {
+    pub async fn connect<A: Into<std::net::SocketAddr>>(
+        addr: A,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
+        let stream = crate::TokioTcpStream::connect(addr.into()).await?;
+
+        Self::new(stream, configuration)
+    }
+}
+
+#[cfg(all(unix, feature = "tokio"))]
+impl AsyncSession<crate::TokioUnixStream> {
+    #[cfg(unix)]
+    pub async fn connect<P: AsRef<Path>>(
+        path: P,
+        configuration: impl Into<Option<SessionConfiguration>>,
+    ) -> Result<Self, Error> {
+        let stream = crate::TokioUnixStream::connect(path).await?;
+
+        Self::new(stream, configuration)
     }
 }
 
@@ -110,21 +165,17 @@ where
             .await
     }
 
-    pub async fn userauth_agent(&self, username: &str) -> io::Result<()> {
+    pub async fn userauth_agent(&self, username: &str) -> Result<(), Error> {
         let mut agent = self.agent()?;
         agent.connect().await?;
         agent.list_identities().await?;
         let identities = agent.identities()?;
         let identity = match identities.get(0) {
             Some(identity) => identity,
-            None => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "no identities found in the ssh agent",
-                ))
-            }
+            None => return Err(Error::Other("no identities found in the ssh agent".into())),
         };
-        agent.userauth(username, identity).await
+        // agent.userauth(username, identity).await
+        todo!()
     }
 
     pub async fn userauth_pubkey_file(
@@ -189,10 +240,8 @@ where
     }
 
     pub async fn auth_methods(&self, username: &str) -> Result<&str, Error> {
-        let inner = &self.inner;
-
         self.stream
-            .read_and_write_with(&self.inner, || inner.auth_methods(username))
+            .read_and_write_with(&self.inner, || self.inner.auth_methods(username))
             .await
     }
 
@@ -215,22 +264,22 @@ where
             .await
     }
 
-    pub fn agent(&self) -> io::Result<AsyncAgent<S>> {
-        let ret = self.inner.agent();
+    pub fn agent(&self) -> Result<AsyncAgent<S>, Error> {
+        let agent = self.inner.agent()?;
 
         // ret.map(|agent| AsyncAgent::from_parts(agent, self.stream.clone()))
         todo!()
     }
 
-    pub fn known_hosts(&self) -> io::Result<KnownHosts> {
+    pub fn known_hosts(&self) -> Result<KnownHosts, Error> {
         self.inner.known_hosts().map_err(Into::into)
     }
 
-    pub async fn channel_session(&self) -> io::Result<AsyncChannel<S>> {
-        let ret = self
+    pub async fn channel_session(&self) -> Result<AsyncChannel<S>, Error> {
+        let channel = self
             .stream
             .read_and_write_with(&self.inner, || self.inner.channel_session())
-            .await;
+            .await?;
 
         // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
         todo!()
@@ -241,13 +290,13 @@ where
         host: &str,
         port: u16,
         src: Option<(&str, u16)>,
-    ) -> io::Result<AsyncChannel<S>> {
-        let ret = self
+    ) -> Result<AsyncChannel<S>, Error> {
+        let channel = self
             .stream
             .read_and_write_with(&self.inner, || {
                 self.inner.channel_direct_tcpip(host, port, src)
             })
-            .await;
+            .await?;
 
         // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
         todo!()
@@ -258,15 +307,14 @@ where
         remote_port: u16,
         host: Option<&str>,
         queue_maxsize: Option<u32>,
-    ) -> io::Result<(AsyncListener<S>, u16)> {
-        let inner = &self.inner;
-
-        let ret = self
+    ) -> Result<(AsyncListener<S>, u16), Error> {
+        let (listener, port) = self
             .stream
             .read_and_write_with(&self.inner, || {
-                inner.channel_forward_listen(remote_port, host, queue_maxsize)
+                self.inner
+                    .channel_forward_listen(remote_port, host, queue_maxsize)
             })
-            .await;
+            .await?;
 
         // ret.map(|(listener, port)| {
         //     (
@@ -277,11 +325,11 @@ where
         todo!()
     }
 
-    pub async fn scp_recv(&self, path: &Path) -> io::Result<(AsyncChannel<S>, ScpFileStat)> {
-        let ret = self
+    pub async fn scp_recv(&self, path: &Path) -> Result<(AsyncChannel<S>, ScpFileStat), Error> {
+        let (channel, scp_file_stat) = self
             .stream
             .read_and_write_with(&self.inner, || self.inner.scp_recv(path))
-            .await;
+            .await?;
 
         // ret.map(|(channel, scp_file_stat)| {
         //     (
@@ -298,23 +346,23 @@ where
         mode: i32,
         size: u64,
         times: Option<(u64, u64)>,
-    ) -> io::Result<AsyncChannel<S>> {
-        let ret = self
+    ) -> Result<AsyncChannel<S>, Error> {
+        let channel = self
             .stream
             .read_and_write_with(&self.inner, || {
                 self.inner.scp_send(remote_path, mode, size, times)
             })
-            .await;
+            .await?;
 
         // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
         todo!()
     }
 
-    pub async fn sftp(&self) -> io::Result<AsyncSftp<S>> {
-        let ret = self
+    pub async fn sftp(&self) -> Result<AsyncSftp<S>, Error> {
+        let sftp = self
             .stream
             .read_and_write_with(&self.inner, || self.inner.sftp().map_err(Into::into))
-            .await;
+            .await?;
 
         // ret.map(|sftp| AsyncSftp::from_parts(sftp, self.stream.clone()))
         todo!()
@@ -326,15 +374,14 @@ where
         window_size: u32,
         packet_size: u32,
         message: Option<&str>,
-    ) -> io::Result<AsyncChannel<S>> {
-        let inner = &self.inner;
-
-        let ret = self
+    ) -> Result<AsyncChannel<S>, Error> {
+        let channel = self
             .stream
             .read_and_write_with(&self.inner, || {
-                inner.channel_open(channel_type, window_size, packet_size, message)
+                self.inner
+                    .channel_open(channel_type, window_size, packet_size, message)
             })
-            .await;
+            .await?;
 
         // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
         todo!()
@@ -380,7 +427,7 @@ impl<S> AsyncSession<S> {
         Ssh2Error::last_session_error(&self.inner)
     }
 
-    pub async fn userauth_agent_with_try_next(&self, username: &str) -> io::Result<()> {
+    pub async fn userauth_agent_with_try_next(&self, username: &str) -> Result<(), Error> {
         // let mut agent = self.agent()?;
         // agent.connect().await?;
         // agent.list_identities().await?;
@@ -461,11 +508,13 @@ struct SessionKeepaliveConfiguration {
     interval: u32,
 }
 
-pub(crate) fn get_session(configuration: Option<SessionConfiguration>) -> io::Result<Session> {
+pub(crate) fn get_session(
+    configuration: impl Into<Option<SessionConfiguration>>,
+) -> Result<Session, Error> {
     let session = Session::new()?;
     session.set_blocking(false);
 
-    if let Some(configuration) = configuration {
+    if let Some(configuration) = configuration.into() {
         if let Some(banner) = configuration.banner {
             session.set_banner(banner.as_ref())?;
         }

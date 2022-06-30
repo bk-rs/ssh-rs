@@ -9,8 +9,9 @@ use std::os::windows::io::AsRawSocket;
 use async_io::Async;
 use ssh2::{Agent, PublicKey};
 
-use crate::session::get_session;
+use crate::{error::Error, session::get_session};
 
+//
 pub struct AsyncAgent<S> {
     inner: Agent,
     async_io: Arc<Async<S>>,
@@ -21,7 +22,7 @@ impl<S> AsyncAgent<S>
 where
     S: AsRawFd + 'static,
 {
-    pub fn new(stream: Async<S>) -> io::Result<Self> {
+    pub fn new(stream: Async<S>) -> Result<Self, Error> {
         let mut session = get_session(None)?;
         session.set_tcp_stream(stream.as_raw_fd());
 

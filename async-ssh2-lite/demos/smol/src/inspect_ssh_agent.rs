@@ -2,7 +2,7 @@
 cargo run -p async-ssh2-lite-demo-smol --bin inspect_ssh_agent
 */
 
-use std::io;
+use std::error;
 
 #[cfg(not(unix))]
 use std::net::TcpListener;
@@ -16,11 +16,11 @@ use futures::executor::block_on;
 
 use async_ssh2_lite::AsyncAgent;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     block_on(run())
 }
 
-async fn run() -> io::Result<()> {
+async fn run() -> Result<(), Box<dyn error::Error>> {
     let stream = {
         cfg_if::cfg_if! {
             if #[cfg(unix)] {

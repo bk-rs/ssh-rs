@@ -34,14 +34,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let (trigger, shutdown) = async_channel::unbounded::<()>();
 
     let ret_vec: (_, Result<(), Box<dyn error::Error>>) = Parallel::new()
-        .each(0..4, |_| {
-            block_on(ex.run(async {
-                shutdown
-                    .recv()
-                    .await
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-            }))
-        })
+        .each(0..4, |_| block_on(ex.run(async { shutdown.recv().await })))
         .finish(|| {
             block_on(local_ex.run(async {
                 run(ex.clone()).await?;
@@ -86,7 +79,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
 
         let mut bastion_session = AsyncSession::new(bastion_stream, None)?;
 
-        bastion_session.handshake().await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
+        bastion_session.handshake().await?;
 
         bastion_session
             .userauth_agent(bastion_username.as_ref())
@@ -190,7 +183,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
 
         //
         let mut session = AsyncSession::new(forward_stream_s, None)?;
-        session.handshake().await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
+        session.handshake().await?;
 
         session.userauth_agent(username.as_ref()).await?;
 
@@ -212,7 +205,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
         channel.close().await?;
         println!("channel exit_status: {}", channel.exit_status()?);
 
-        session.disconnect(None, "foo", None).await.map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
+        session.disconnect(None, "foo", None).await?;
 
         sender_with_main.send("done_with_main").await.unwrap();
 

@@ -4,7 +4,6 @@ cargo run -p async-ssh2-lite-demo-smol --bin sample 127.0.0.1:22 root
 
 use std::env;
 use std::error;
-use std::io;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use std::thread;
@@ -23,14 +22,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let local_ex = LocalExecutor::new();
     let (trigger, shutdown) = async_channel::unbounded::<()>();
 
-    let ret_vec: (_, io::Result<()>) = Parallel::new()
+    let ret_vec: (_, Result<(), Box<dyn error::Error>>) = Parallel::new()
         .each(0..4, |_| {
-            block_on(ex.clone().run(async {
-                shutdown
-                    .recv()
-                    .await
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, err))
-            }))
+            block_on(ex.clone().run(async { shutdown.recv().await }))
         })
         .finish(|| {
             block_on(local_ex.run(async {
@@ -47,7 +41,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
-async fn run(ex: Arc<Executor<'_>>) -> io::Result<()> {
+async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| env::var("ADDR").unwrap_or_else(|_| "127.0.0.1:22".to_owned()));

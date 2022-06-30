@@ -13,7 +13,7 @@ categories = ["asynchronous", "network-programming"]
 readme = "README.md"
 
 [features]
-default = ["async-io"]
+default = ["async-io", "tokio"]
 
 vendored-openssl = ["ssh2/vendored-openssl"]
 
@@ -30,6 +30,8 @@ tokio = { version = "1", default-features = false, features = ["net"], optional 
 [dev-dependencies]
 futures-lite = { version = "1" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+env_logger = { version = "0.9" }
 
 [package.metadata.cargo-all-features]
 denylist = [

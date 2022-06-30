@@ -1,5 +1,5 @@
 use core::fmt;
-use std::io::Error as IoError;
+use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use ssh2::Error as Ssh2Error;
 
@@ -8,6 +8,7 @@ use ssh2::Error as Ssh2Error;
 pub enum Error {
     Ssh2(Ssh2Error),
     Io(IoError),
+    Other(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl fmt::Display for Error {
@@ -27,5 +28,16 @@ impl From<Ssh2Error> for Error {
 impl From<IoError> for Error {
     fn from(err: IoError) -> Self {
         Self::Io(err)
+    }
+}
+
+//
+impl From<Error> for IoError {
+    fn from(err: Error) -> Self {
+        match err {
+            Error::Ssh2(err) => IoError::new(IoErrorKind::Other, err),
+            Error::Io(err) => err,
+            Error::Other(err) => IoError::new(IoErrorKind::Other, err),
+        }
     }
 }
