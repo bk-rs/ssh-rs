@@ -64,7 +64,7 @@ async fn __run__session__userauth_agent<S: AsyncSessionStream + Send + Sync>(
     match session.userauth_agent(get_username().as_ref()).await {
         Ok(_) => {}
         Err(err) => {
-            println!("session.userauth_agent failed, err:{}", err);
+            eprintln!("session.userauth_agent failed, err:{}", err);
         }
     }
     assert!(!session.authenticated());

@@ -11,7 +11,7 @@
 * [Upload a file](tests/integration_tests/session__scp_send_and_scp_recv.rs)
 * [Download a file](tests/integration_tests/session__scp_send_and_scp_recv.rs)
 * [Run commands](tests/integration_tests/channel__exec.rs)
+* [Inspecting sftp](tests/integration_tests/sftp.rs)
 
 * [Remote port forwarding](demos/smol/src/remote_port_forwarding.rs)
 * [Through a jump host / bastion host](demos/smol/src/proxy_jump.rs)
-* [Inspecting sftp](demos/smol/src/inspect_sftp.rs)

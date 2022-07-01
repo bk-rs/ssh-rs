@@ -43,17 +43,17 @@ async fn __run__session__channel_session__exec<S: AsyncSessionStream + Send + Sy
     channel.exec("hostname").await?;
     let mut s = String::new();
     channel.read_to_string(&mut s).await?;
-    println!("hostname: {}", s);
+    println!("exec hostname output:{}", s);
     channel.close().await?;
-    println!("channel exit_status: {}", channel.exit_status()?);
+    println!("exec hostname exit_status:{}", channel.exit_status()?);
 
     let mut channel = session.channel_session().await?;
     channel.exec("date").await?;
     let mut s = String::new();
     channel.read_to_string(&mut s).await?;
-    println!("date: {}", s);
+    println!("exec date output:{}", s);
     channel.close().await?;
-    println!("channel exit_status: {}", channel.exit_status()?);
+    println!("exec date exit_status:{}", channel.exit_status()?);
 
     Ok(())
 }

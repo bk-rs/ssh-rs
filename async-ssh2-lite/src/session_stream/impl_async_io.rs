@@ -6,7 +6,7 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use async_io::{Async, Timer};
 use async_trait::async_trait;
-use futures_util::{future, ready};
+use futures_util::{future, pin_mut, ready};
 use ssh2::{BlockDirections, Error as Ssh2Error, Session};
 
 use super::{AsyncSessionStream, BlockDirectionsExt as _};
@@ -61,7 +61,7 @@ where
             }
 
             if let Some(dur) = sleep_dur {
-                sleep(dur).await;
+                sleep_async_fn(dur).await;
             }
         }
     }
@@ -103,9 +103,12 @@ where
             }
         }
 
-        if let Some(_dur) = sleep_dur {
+        if let Some(dur) = sleep_dur {
             let waker = cx.waker().clone();
-            // TODO, sleep
+            // TODO, maybe wrong
+            let timer = sleep(dur);
+            pin_mut!(timer);
+            ready!(future::Future::poll(timer, cx));
             waker.wake();
         } else {
             let waker = cx.waker().clone();
@@ -119,6 +122,10 @@ where
 //
 //
 //
-async fn sleep(dur: Duration) {
-    Timer::after(dur).await;
+async fn sleep_async_fn(dur: Duration) {
+    sleep(dur).await;
+}
+
+async fn sleep(dur: Duration) -> Timer {
+    Timer::after(dur)
 }

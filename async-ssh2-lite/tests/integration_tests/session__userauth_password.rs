@@ -37,7 +37,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         .collect::<Vec<_>>();
 
     let rets = join_all(futures).await;
-    println!("{:?}", rets);
+    println!("__run__session__userauth_password rets:{:?}", rets);
     assert!(rets.iter().all(|x| x.is_ok()));
 
     Ok(())
@@ -69,7 +69,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
             .collect::<Vec<_>>();
 
         let rets = join_all(futures).await;
-        println!("{:?}", rets);
+        println!("__run__session__userauth_password rets:{:?}", rets);
         assert!(rets.iter().all(|x| x.is_ok()));
 
         Ok(())

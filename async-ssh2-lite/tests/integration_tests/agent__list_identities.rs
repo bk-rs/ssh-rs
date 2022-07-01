@@ -91,7 +91,7 @@ async fn __run__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
     }
 
     for identity in identities {
-        println!("identity comment: {}", identity.comment());
+        println!("identity comment:{}", identity.comment());
     }
 
     agent.disconnect().await?;

@@ -58,7 +58,7 @@ impl AsyncSessionStream for TcpStream {
             }
 
             if let Some(dur) = sleep_dur {
-                sleep(dur).await;
+                sleep_async_fn(dur).await;
             }
         }
     }
@@ -101,8 +101,8 @@ impl AsyncSessionStream for TcpStream {
 
         if let Some(dur) = sleep_dur {
             let waker = cx.waker().clone();
-            tokio::task::spawn(async move {
-                sleep(dur).await;
+            tokio::spawn(async move {
+                sleep_async_fn(dur).await;
                 waker.wake();
             });
         } else {
@@ -158,7 +158,7 @@ impl AsyncSessionStream for UnixStream {
             }
 
             if let Some(dur) = sleep_dur {
-                sleep(dur).await;
+                sleep_async_fn(dur).await;
             }
         }
     }
@@ -201,10 +201,13 @@ impl AsyncSessionStream for UnixStream {
 
         if let Some(dur) = sleep_dur {
             let waker = cx.waker().clone();
-            tokio::task::spawn(async move {
-                sleep(dur).await;
+            tokio::spawn(async move {
+                sleep_async_fn(dur).await;
                 waker.wake();
             });
+        } else {
+            let waker = cx.waker().clone();
+            waker.wake();
         }
 
         Poll::Pending
@@ -214,6 +217,10 @@ impl AsyncSessionStream for UnixStream {
 //
 //
 //
-async fn sleep(dur: Duration) {
-    tokio::time::sleep(tokio::time::Duration::from_millis(dur.as_millis() as u64)).await
+async fn sleep_async_fn(dur: Duration) {
+    sleep(dur).await;
+}
+
+fn sleep(dur: Duration) -> tokio::time::Sleep {
+    tokio::time::sleep(tokio::time::Duration::from_millis(dur.as_millis() as u64))
 }
