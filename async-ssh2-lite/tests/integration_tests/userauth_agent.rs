@@ -2,7 +2,7 @@ use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
 
-use super::helpers::{get_connect_addr, USERNAME};
+use super::helpers::{get_connect_addr, get_username};
 
 //
 #[cfg(feature = "tokio")]
@@ -43,7 +43,7 @@ async fn exec_userauth_agent_with_try_next<S: AsyncSessionStream + Send + Sync>(
     session.handshake().await?;
 
     session
-        .userauth_agent_with_try_next_with_callback(USERNAME, |identities| {
+        .userauth_agent_with_try_next_with_callback(get_username().as_ref(), |identities| {
             identities.into_iter().rev().collect()
         })
         .await?;
@@ -57,7 +57,7 @@ async fn exec_userauth_agent<S: AsyncSessionStream + Send + Sync>(
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
 
-    match session.userauth_agent(USERNAME).await {
+    match session.userauth_agent(get_username().as_ref()).await {
         Ok(_) => {}
         Err(err) => {
             println!("session.userauth_agent failed, err:{}", err);

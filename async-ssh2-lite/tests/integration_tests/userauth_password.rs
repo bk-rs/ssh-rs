@@ -3,7 +3,9 @@ use std::error;
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
 use futures_util::future::join_all;
 
-use super::helpers::{get_connect_addr, init_logger, PASSWORD, USERNAME};
+use super::helpers::{
+    get_connect_addr, get_password, get_username, init_logger, is_internal_openssh_server_docker,
+};
 
 /*
 Maybe LIBSSH2_ERROR_SOCKET_DISCONNECT , should change MaxStartups and MaxSessions
@@ -15,7 +17,13 @@ Maybe LIBSSH2_ERROR_SOCKET_DISCONNECT , should change MaxStartups and MaxSession
 async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
     init_logger();
 
-    let futures = (1_usize..=10)
+    let times = if is_internal_openssh_server_docker() {
+        10
+    } else {
+        2
+    };
+
+    let futures = (1..=times)
         .into_iter()
         .map(|_| async {
             let mut session =
@@ -39,7 +47,13 @@ fn with_async_io() -> Result<(), Box<dyn error::Error>> {
     futures_lite::future::block_on(async {
         init_logger();
 
-        let futures = (1_usize..=10)
+        let times = if is_internal_openssh_server_docker() {
+            10
+        } else {
+            2
+        };
+
+        let futures = (1..=times)
             .into_iter()
             .map(|_| async {
                 let mut session = AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(
@@ -65,7 +79,10 @@ async fn exec_userauth_password<S: AsyncSessionStream + Send + Sync>(
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
 
-    match session.userauth_password(USERNAME, "xxx").await {
+    match session
+        .userauth_password(get_username().as_ref(), "xxx")
+        .await
+    {
         Ok(_) => panic!(""),
         Err(err) => {
             assert!(err
@@ -75,7 +92,9 @@ async fn exec_userauth_password<S: AsyncSessionStream + Send + Sync>(
     }
     assert!(!session.authenticated());
 
-    session.userauth_password(USERNAME, PASSWORD).await?;
+    session
+        .userauth_password(get_username().as_ref(), get_password().as_ref())
+        .await?;
     assert!(session.authenticated());
 
     Ok(())

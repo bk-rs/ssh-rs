@@ -40,7 +40,8 @@ ssh-add "${keys_dir}/id_rsa"
 ssh-add "${keys_dir}/id_dsa"
 
 cleanup() {
-    docker logs ${container_name} -n 10
+    docker exec ${container_name} tail -n 30 /config/logs/openssh/current
+    docker logs ${container_name} -n 5
     docker stop ${container_name}
 
     ssh-add -d "${keys_dir}/id_rsa"

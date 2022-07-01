@@ -29,10 +29,8 @@ pub use sftp::{AsyncFile, AsyncSftp};
 
 //
 pub mod error;
+pub mod session_stream;
+pub mod util;
 
 pub use error::Error;
-
-//
-pub mod session_stream;
-
 pub use session_stream::AsyncSessionStream;

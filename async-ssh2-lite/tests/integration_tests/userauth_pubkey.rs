@@ -1,12 +1,13 @@
-use std::{env, error, path::PathBuf};
+use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
 
-use super::helpers::{get_connect_addr, USERNAME};
+use super::helpers::{get_connect_addr, get_privatekey_path, get_username};
 
 /*
 id_rsa userauth_pubkey_file: Ssh2(Error { code: Session(-18), msg: "Username/PublicKey combination invalid" })
 Ref https://github.com/libssh2/libssh2/issues/68
+sudo tail -f /var/log/auth.log
 
 id_dsa cannot userauth_pubkey_memory
 */
@@ -40,22 +41,13 @@ async fn exec_userauth_pubkey_file<S: AsyncSessionStream + Send + Sync>(
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
 
-    //
-    let manifest_path = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        PathBuf::from(&manifest_dir)
-    } else {
-        PathBuf::new()
-    };
-
-    let keys_dir = manifest_path.join("tests").join("keys");
-    let keys_dir = if keys_dir.exists() {
-        keys_dir
-    } else {
-        manifest_path.join("tests").join("keys")
-    };
-
     session
-        .userauth_pubkey_file(USERNAME, None, &keys_dir.join("id_dsa"), None)
+        .userauth_pubkey_file(
+            get_username().as_ref(),
+            None,
+            get_privatekey_path().as_ref(),
+            None,
+        )
         .await?;
     assert!(session.authenticated());
 
