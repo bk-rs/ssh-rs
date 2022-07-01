@@ -1,149 +1,150 @@
-use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::{Context, Poll};
+use core::{
+    pin::Pin,
+    task::{Context, Poll},
+};
+use std::{
+    io::{Error as IoError, Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
-use async_io::Async;
 use futures_util::io::{AsyncRead, AsyncSeek, AsyncWrite};
-use futures_util::ready;
-use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Sftp};
+use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Session, Sftp};
+
+use crate::{error::Error, session_stream::AsyncSessionStream};
 
 pub struct AsyncSftp<S> {
     inner: Sftp,
-    async_io: Arc<Async<S>>,
+    sess: Session,
+    stream: Arc<S>,
 }
 
 impl<S> AsyncSftp<S> {
-    pub(crate) fn from_parts(inner: Sftp, async_io: Arc<Async<S>>) -> Self {
-        Self { inner, async_io }
+    pub(crate) fn from_parts(inner: Sftp, sess: Session, stream: Arc<S>) -> Self {
+        Self {
+            inner,
+            sess,
+            stream,
+        }
     }
 }
 
-impl<S> AsyncSftp<S> {
+impl<S> AsyncSftp<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
     pub async fn open_mode(
         &self,
         filename: &Path,
         flags: OpenFlags,
         mode: i32,
         open_type: OpenType,
-    ) -> io::Result<AsyncFile<S>> {
-        let inner = &self.inner;
+    ) -> Result<AsyncFile<S>, Error> {
+        let file = self
+            .stream
+            .read_and_write_with(
+                || self.inner.open_mode(filename, flags, mode, open_type),
+                &self.sess,
+            )
+            .await?;
 
-        let ret = self
-            .async_io
-            .write_with(|_| {
-                inner
-                    .open_mode(filename, flags, mode, open_type)
-                    .map_err(Into::into)
-            })
-            .await;
-
-        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
+        Ok(AsyncFile::from_parts(
+            file,
+            self.sess.clone(),
+            self.stream.clone(),
+        ))
     }
 
-    pub async fn open(&self, filename: &Path) -> io::Result<AsyncFile<S>> {
-        let inner = &self.inner;
+    pub async fn open(&self, filename: &Path) -> Result<AsyncFile<S>, Error> {
+        let file = self
+            .stream
+            .read_and_write_with(|| self.inner.open(filename), &self.sess)
+            .await?;
 
-        let ret = self
-            .async_io
-            .write_with(|_| inner.open(filename).map_err(Into::into))
-            .await;
-
-        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
+        Ok(AsyncFile::from_parts(
+            file,
+            self.sess.clone(),
+            self.stream.clone(),
+        ))
     }
 
-    pub async fn create(&self, filename: &Path) -> io::Result<AsyncFile<S>> {
-        let inner = &self.inner;
+    pub async fn create(&self, filename: &Path) -> Result<AsyncFile<S>, Error> {
+        let file = self
+            .stream
+            .read_and_write_with(|| self.inner.create(filename), &self.sess)
+            .await?;
 
-        let ret = self
-            .async_io
-            .write_with(|_| inner.create(filename).map_err(Into::into))
-            .await;
-
-        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
+        Ok(AsyncFile::from_parts(
+            file,
+            self.sess.clone(),
+            self.stream.clone(),
+        ))
     }
 
-    pub async fn opendir(&self, dirname: &Path) -> io::Result<AsyncFile<S>> {
-        let inner = &self.inner;
+    pub async fn opendir(&self, dirname: &Path) -> Result<AsyncFile<S>, Error> {
+        let file = self
+            .stream
+            .read_and_write_with(|| self.inner.opendir(dirname), &self.sess)
+            .await?;
 
-        let ret = self
-            .async_io
-            .write_with(|_| inner.opendir(dirname).map_err(Into::into))
-            .await;
-
-        ret.map(|file| AsyncFile::from_parts(file, self.async_io.clone()))
+        Ok(AsyncFile::from_parts(
+            file,
+            self.sess.clone(),
+            self.stream.clone(),
+        ))
     }
 
-    pub async fn readdir(&self, dirname: &Path) -> io::Result<Vec<(PathBuf, FileStat)>> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.readdir(dirname).map_err(Into::into))
+    pub async fn readdir(&self, dirname: &Path) -> Result<Vec<(PathBuf, FileStat)>, Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.readdir(dirname), &self.sess)
             .await
     }
 
-    pub async fn mkdir(&self, filename: &Path, mode: i32) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.mkdir(filename, mode).map_err(Into::into))
+    pub async fn mkdir(&self, filename: &Path, mode: i32) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.mkdir(filename, mode), &self.sess)
             .await
     }
 
-    pub async fn rmdir(&self, filename: &Path) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.rmdir(filename).map_err(Into::into))
+    pub async fn rmdir(&self, filename: &Path) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.rmdir(filename), &self.sess)
             .await
     }
 
-    pub async fn stat(&self, filename: &Path) -> io::Result<FileStat> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.stat(filename).map_err(Into::into))
+    pub async fn stat(&self, filename: &Path) -> Result<FileStat, Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.stat(filename), &self.sess)
             .await
     }
 
-    pub async fn lstat(&self, filename: &Path) -> io::Result<FileStat> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.lstat(filename).map_err(Into::into))
+    pub async fn lstat(&self, filename: &Path) -> Result<FileStat, Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.lstat(filename), &self.sess)
             .await
     }
 
-    pub async fn setstat(&self, filename: &Path, stat: FileStat) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.setstat(filename, stat.clone()).map_err(Into::into))
+    pub async fn setstat(&self, filename: &Path, stat: FileStat) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.setstat(filename, stat.clone()), &self.sess)
             .await
     }
 
-    pub async fn symlink(&self, path: &Path, target: &Path) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.symlink(path, target).map_err(Into::into))
+    pub async fn symlink(&self, path: &Path, target: &Path) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.symlink(path, target), &self.sess)
             .await
     }
 
-    pub async fn readlink(&self, path: &Path) -> io::Result<PathBuf> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.readlink(path).map_err(Into::into))
+    pub async fn readlink(&self, path: &Path) -> Result<PathBuf, Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.readlink(path), &self.sess)
             .await
     }
 
-    pub async fn realpath(&self, path: &Path) -> io::Result<PathBuf> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.realpath(path).map_err(Into::into))
+    pub async fn realpath(&self, path: &Path) -> Result<PathBuf, Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.realpath(path), &self.sess)
             .await
     }
 
@@ -152,19 +153,15 @@ impl<S> AsyncSftp<S> {
         src: &Path,
         dst: &Path,
         flags: Option<RenameFlags>,
-    ) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.rename(src, dst, flags).map_err(Into::into))
+    ) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.rename(src, dst, flags), &self.sess)
             .await
     }
 
-    pub async fn unlink(&self, file: &Path) -> io::Result<()> {
-        let inner = &self.inner;
-
-        self.async_io
-            .write_with(|_| inner.unlink(file).map_err(Into::into))
+    pub async fn unlink(&self, file: &Path) -> Result<(), Error> {
+        self.stream
+            .read_and_write_with(|| self.inner.unlink(file), &self.sess)
             .await
     }
 }
@@ -174,73 +171,79 @@ impl<S> AsyncSftp<S> {
 //
 pub struct AsyncFile<S> {
     inner: File,
-    async_io: Arc<Async<S>>,
+    sess: Session,
+    stream: Arc<S>,
 }
 
 impl<S> AsyncFile<S> {
-    pub(crate) fn from_parts(inner: File, async_io: Arc<Async<S>>) -> Self {
-        Self { inner, async_io }
+    pub(crate) fn from_parts(inner: File, sess: Session, stream: Arc<S>) -> Self {
+        Self {
+            inner,
+            sess,
+            stream,
+        }
     }
 }
 
-impl<S> AsyncRead for AsyncFile<S> {
+impl<S> AsyncRead for AsyncFile<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
     fn poll_read(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        loop {
-            match self.inner.read(buf) {
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
-                res => return Poll::Ready(res),
-            }
-            ready!(self.async_io.poll_readable(cx))?;
-        }
+    ) -> Poll<Result<usize, IoError>> {
+        let this = self.get_mut();
+        let sess = this.sess.clone();
+        let inner = &mut this.inner;
+
+        this.stream.poll_read_with(cx, || inner.read(buf), &sess)
     }
 }
 
-impl<S> AsyncWrite for AsyncFile<S> {
+impl<S> AsyncWrite for AsyncFile<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
     fn poll_write(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context,
         buf: &[u8],
-    ) -> Poll<io::Result<usize>> {
-        loop {
-            match self.inner.write(buf) {
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
-                res => return Poll::Ready(res),
-            }
-            ready!(self.async_io.poll_writable(cx))?;
-        }
+    ) -> Poll<Result<usize, IoError>> {
+        let this = self.get_mut();
+        let sess = this.sess.clone();
+        let inner = &mut this.inner;
+
+        this.stream.poll_write_with(cx, || inner.write(buf), &sess)
     }
 
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
-        loop {
-            match self.inner.flush() {
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
-                res => return Poll::Ready(res),
-            }
-            ready!(self.async_io.poll_writable(cx))?;
-        }
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
+        let this = self.get_mut();
+        let sess = this.sess.clone();
+        let inner = &mut this.inner;
+
+        this.stream.poll_write_with(cx, || inner.flush(), &sess)
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
         self.poll_flush(cx)
     }
 }
 
-impl<S> AsyncSeek for AsyncFile<S> {
+impl<S> AsyncSeek for AsyncFile<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
     fn poll_seek(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         pos: SeekFrom,
-    ) -> Poll<io::Result<u64>> {
-        loop {
-            match self.inner.seek(pos) {
-                Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
-                res => return Poll::Ready(res),
-            }
-            ready!(self.async_io.poll_readable(cx))?;
-        }
+    ) -> Poll<Result<u64, IoError>> {
+        let this = self.get_mut();
+        let sess = this.sess.clone();
+        let inner = &mut this.inner;
+
+        this.stream.poll_read_with(cx, || inner.seek(pos), &sess)
     }
 }

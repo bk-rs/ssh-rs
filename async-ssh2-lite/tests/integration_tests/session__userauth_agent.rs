@@ -7,7 +7,7 @@ use super::helpers::{get_connect_addr, get_username};
 //
 #[cfg(feature = "tokio")]
 #[tokio::test]
-async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
+async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
     exec_userauth_agent_with_try_next(&mut session).await?;
@@ -21,7 +21,7 @@ async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
 
 #[cfg(feature = "async-io")]
 #[test]
-fn with_async_io() -> Result<(), Box<dyn error::Error>> {
+fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
     futures_lite::future::block_on(async {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
@@ -37,7 +37,7 @@ fn with_async_io() -> Result<(), Box<dyn error::Error>> {
     })
 }
 
-async fn exec_userauth_agent_with_try_next<S: AsyncSessionStream + Send + Sync>(
+pub(crate) async fn exec_userauth_agent_with_try_next<S: AsyncSessionStream + Send + Sync>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;

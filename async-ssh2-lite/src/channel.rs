@@ -6,7 +6,7 @@ use std::task::{Context, Poll};
 use async_io::Async;
 use futures_util::io::{AsyncRead, AsyncWrite};
 use futures_util::ready;
-use ssh2::{Channel, ExitSignal, ExtendedData, PtyModes, ReadWindow, Stream, WriteWindow};
+use ssh2::{Channel, ExitSignal, ExtendedData, PtyModes, ReadWindow, Session, Stream, WriteWindow};
 
 pub struct AsyncChannel<S> {
     inner: Channel,
@@ -14,8 +14,8 @@ pub struct AsyncChannel<S> {
 }
 
 impl<S> AsyncChannel<S> {
-    pub(crate) fn from_parts(inner: Channel, async_io: Arc<Async<S>>) -> Self {
-        Self { inner, async_io }
+    pub(crate) fn from_parts(inner: Channel, sess: Session, stream: Arc<S>) -> Self {
+        todo!()
     }
 }
 

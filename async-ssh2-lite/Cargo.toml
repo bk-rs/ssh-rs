@@ -25,11 +25,14 @@ futures-util = { version = "0.3", default-features = false, features = ["io"] }
 async-trait = { version = "0.1", default-features = false }
 
 async-io = { version = "1.3", default-features = false, optional = true }
-tokio = { version = "1", default-features = false, features = ["net"], optional = true }
+tokio = { version = "1", default-features = false, features = ["net", "time", "rt"], optional = true }
 
 [dev-dependencies]
 futures-lite = { version = "1" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+cfg-if = { version = "1" }
+tempfile = { version = "3" }
 
 env_logger = { version = "0.9" }
 

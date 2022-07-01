@@ -5,11 +5,33 @@ mod integration_tests {
     mod helpers;
 
     #[cfg(test)]
-    mod userauth_password;
+    #[allow(non_snake_case)]
+    mod agent__list_identities;
 
     #[cfg(test)]
-    mod userauth_pubkey;
+    #[allow(non_snake_case)]
+    mod channel__exec;
 
     #[cfg(test)]
-    mod userauth_agent;
+    #[allow(non_snake_case)]
+    mod session__scp_recv;
+
+    #[cfg(test)]
+    #[allow(non_snake_case)]
+    mod session__scp_send;
+
+    #[cfg(test)]
+    #[allow(non_snake_case)]
+    mod session__userauth_password;
+
+    #[cfg(test)]
+    #[allow(non_snake_case)]
+    mod session__userauth_pubkey;
+
+    #[cfg(test)]
+    #[allow(non_snake_case)]
+    mod session__userauth_agent;
+
+    #[cfg(test)]
+    mod sftp;
 }

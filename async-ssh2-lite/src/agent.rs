@@ -80,25 +80,25 @@ where
 {
     pub async fn connect(&mut self) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(&self.sess, || self.inner.connect())
+            .none_with(|| self.inner.connect(), &self.sess)
             .await
     }
 
     pub async fn disconnect(&mut self) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(&self.sess, || self.inner.disconnect())
+            .none_with(|| self.inner.disconnect(), &self.sess)
             .await
     }
 
     pub async fn list_identities(&mut self) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(&self.sess, || self.inner.list_identities())
+            .read_and_write_with(|| self.inner.list_identities(), &self.sess)
             .await
     }
 
     pub async fn userauth(&self, username: &str, identity: &PublicKey) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(&self.sess, || self.inner.userauth(username, identity))
+            .read_and_write_with(|| self.inner.userauth(username, identity), &self.sess)
             .await
     }
 }

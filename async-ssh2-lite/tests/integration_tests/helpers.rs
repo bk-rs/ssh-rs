@@ -13,7 +13,7 @@ pub(super) fn get_connect_addr() -> Result<SocketAddr, Box<dyn error::Error>> {
     let host = env::var("SSH_SERVER_HOST")
         .ok()
         .as_deref()
-        .unwrap_or_else(|| "127.0.0.1")
+        .unwrap_or("127.0.0.1")
         .parse::<IpAddr>()?;
 
     let port = env::var("SSH_SERVER_PORT")?;
@@ -26,7 +26,7 @@ pub(super) fn get_username() -> Box<str> {
     env::var("SSH_USERNAME")
         .ok()
         .as_deref()
-        .unwrap_or_else(|| USERNAME)
+        .unwrap_or(USERNAME)
         .into()
 }
 
@@ -34,7 +34,7 @@ pub(super) fn get_password() -> Box<str> {
     env::var("SSH_PASSWORD")
         .ok()
         .as_deref()
-        .unwrap_or_else(|| PASSWORD)
+        .unwrap_or(PASSWORD)
         .into()
 }
 
@@ -58,7 +58,6 @@ pub(super) fn get_privatekey_path() -> PathBuf {
 
             keys_dir.join("id_rsa")
         })
-        .into()
 }
 
 pub(super) fn is_internal_openssh_server_docker() -> bool {

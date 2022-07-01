@@ -14,7 +14,7 @@ Maybe LIBSSH2_ERROR_SOCKET_DISCONNECT , should change MaxStartups and MaxSession
 //
 #[cfg(feature = "tokio")]
 #[tokio::test]
-async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
+async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     init_logger();
 
     let times = if is_internal_openssh_server_docker() {
@@ -43,7 +43,7 @@ async fn with_tokio() -> Result<(), Box<dyn error::Error>> {
 
 #[cfg(feature = "async-io")]
 #[test]
-fn with_async_io() -> Result<(), Box<dyn error::Error>> {
+fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
     futures_lite::future::block_on(async {
         init_logger();
 

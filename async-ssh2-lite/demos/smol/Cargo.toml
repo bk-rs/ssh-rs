@@ -13,10 +13,6 @@ name = "inspect_sftp"
 path = "src/inspect_sftp.rs"
 
 [[bin]]
-name = "inspect_ssh_agent"
-path = "src/inspect_ssh_agent.rs"
-
-[[bin]]
 name = "proxy_jump"
 path = "src/proxy_jump.rs"
 

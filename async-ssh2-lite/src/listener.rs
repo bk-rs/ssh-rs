@@ -1,40 +1,45 @@
-use std::io;
+use core::time::Duration;
 use std::sync::Arc;
-use std::time::Duration;
 
-use async_io::{Async, Timer};
-use ssh2::Listener;
+use ssh2::{BlockDirections, Listener, Session};
 
-use crate::channel::AsyncChannel;
+use crate::{channel::AsyncChannel, error::Error, session_stream::AsyncSessionStream};
 
 pub struct AsyncListener<S> {
     inner: Listener,
-    async_io: Arc<Async<S>>,
+    sess: Session,
+    stream: Arc<S>,
 }
 
 impl<S> AsyncListener<S> {
-    pub(crate) fn from_parts(inner: Listener, async_io: Arc<Async<S>>) -> Self {
-        Self { inner, async_io }
+    pub(crate) fn from_parts(inner: Listener, sess: Session, stream: Arc<S>) -> Self {
+        Self {
+            inner,
+            sess,
+            stream,
+        }
     }
 }
 
-impl<S> AsyncListener<S> {
-    pub async fn accept(&mut self) -> io::Result<AsyncChannel<S>> {
-        // The I/O object for Listener::accept is on the remote SSH server. There is no way to poll
-        // its state so the best we can do is loop and periodically check whether we have a new
-        // connection.
-        let channel = loop {
-            match self.inner.accept() {
-                Ok(channel) => break channel,
-                Err(e)
-                    if io::Error::from(ssh2::Error::from_errno(e.code())).kind()
-                        == io::ErrorKind::WouldBlock => {}
-                Err(e) => return Err(io::Error::from(e)),
-            }
+impl<S> AsyncListener<S>
+where
+    S: AsyncSessionStream + Send + Sync,
+{
+    pub async fn accept(&mut self) -> Result<AsyncChannel<S>, Error> {
+        let channel = self
+            .stream
+            .x_with(
+                || self.inner.accept(),
+                &self.sess,
+                BlockDirections::Both,
+                Some(Duration::from_millis(10)),
+            )
+            .await?;
 
-            Timer::after(Duration::from_millis(10)).await;
-        };
-
-        Ok(AsyncChannel::from_parts(channel, self.async_io.clone()))
+        Ok(AsyncChannel::from_parts(
+            channel,
+            self.sess.clone(),
+            self.stream.clone(),
+        ))
     }
 }
