@@ -94,8 +94,8 @@ impl AsyncSessionStream for TcpStream {
                 assert!(maybe_block_directions.is_readable());
                 assert!(maybe_block_directions.is_writable());
 
-                ready!(self.poll_read_ready(cx))?;
                 ready!(self.poll_write_ready(cx))?;
+                ready!(self.poll_read_ready(cx))?;
             }
         }
 
@@ -105,6 +105,9 @@ impl AsyncSessionStream for TcpStream {
                 sleep(dur).await;
                 waker.wake();
             });
+        } else {
+            let waker = cx.waker().clone();
+            waker.wake();
         }
 
         Poll::Pending
@@ -191,8 +194,8 @@ impl AsyncSessionStream for UnixStream {
                 assert!(maybe_block_directions.is_readable());
                 assert!(maybe_block_directions.is_writable());
 
-                ready!(self.poll_read_ready(cx))?;
                 ready!(self.poll_write_ready(cx))?;
+                ready!(self.poll_read_ready(cx))?;
             }
         }
 

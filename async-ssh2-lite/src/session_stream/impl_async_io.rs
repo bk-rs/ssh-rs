@@ -6,8 +6,7 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use async_io::{Async, Timer};
 use async_trait::async_trait;
-use futures_util::future;
-use futures_util::ready;
+use futures_util::{future, ready};
 use ssh2::{BlockDirections, Error as Ssh2Error, Session};
 
 use super::{AsyncSessionStream, BlockDirectionsExt as _};
@@ -73,7 +72,7 @@ where
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
         maybe_block_directions: BlockDirections,
-        _sleep_dur: Option<Duration>,
+        sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
             Err(err) if err.kind() == IoErrorKind::WouldBlock => {}
@@ -98,9 +97,19 @@ where
                 assert!(maybe_block_directions.is_readable());
                 assert!(maybe_block_directions.is_writable());
 
-                ready!(self.poll_readable(cx))?;
+                // Must first poll_writable, because session__scp_send_and_scp_recv.rs
                 ready!(self.poll_writable(cx))?;
+                ready!(self.poll_readable(cx))?;
             }
+        }
+
+        if let Some(_dur) = sleep_dur {
+            let waker = cx.waker().clone();
+            // TODO, sleep
+            waker.wake();
+        } else {
+            let waker = cx.waker().clone();
+            waker.wake();
         }
 
         Poll::Pending

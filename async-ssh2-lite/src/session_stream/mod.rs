@@ -27,7 +27,7 @@ pub trait AsyncSessionStream {
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error>;
 
-    async fn read_and_write_with<R>(
+    async fn rw_with<R>(
         &self,
         op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
@@ -118,7 +118,7 @@ pub trait AsyncSessionStream {
             cx,
             op,
             sess,
-            BlockDirections::Outbound,
+            BlockDirections::Both,
             Some(Duration::from_millis(1)),
         )
     }

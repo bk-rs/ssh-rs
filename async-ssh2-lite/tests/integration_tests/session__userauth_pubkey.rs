@@ -1,3 +1,5 @@
+#![cfg(any(feature = "async-io", feature = "tokio"))]
+
 use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
@@ -18,14 +20,14 @@ id_dsa userauth_pubkey_memory: Ssh2(Error { code: Session(-19), msg: "Callback r
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    exec_userauth_pubkey_file(&mut session).await?;
+    __run__session__userauth_pubkey_file(&mut session).await?;
 
     #[cfg(unix)]
     {
         let mut session =
             AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        exec_userauth_pubkey_memory(&mut session).await?;
+        __run__session__userauth_pubkey_memory(&mut session).await?;
     }
 
     Ok(())
@@ -38,7 +40,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        exec_userauth_pubkey_file(&mut session).await?;
+        __run__session__userauth_pubkey_file(&mut session).await?;
 
         #[cfg(unix)]
         {
@@ -47,14 +49,14 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
                 None,
             )
             .await?;
-            exec_userauth_pubkey_memory(&mut session).await?;
+            __run__session__userauth_pubkey_memory(&mut session).await?;
         }
 
         Ok(())
     })
 }
 
-async fn exec_userauth_pubkey_file<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__userauth_pubkey_file<S: AsyncSessionStream + Send + Sync>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
@@ -73,7 +75,7 @@ async fn exec_userauth_pubkey_file<S: AsyncSessionStream + Send + Sync>(
 }
 
 #[cfg(unix)]
-async fn exec_userauth_pubkey_memory<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__userauth_pubkey_memory<S: AsyncSessionStream + Send + Sync>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;

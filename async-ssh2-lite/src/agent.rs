@@ -92,13 +92,13 @@ where
 
     pub async fn list_identities(&mut self) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.list_identities(), &self.sess)
+            .rw_with(|| self.inner.list_identities(), &self.sess)
             .await
     }
 
     pub async fn userauth(&self, username: &str, identity: &PublicKey) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.userauth(username, identity), &self.sess)
+            .rw_with(|| self.inner.userauth(username, identity), &self.sess)
             .await
     }
 }

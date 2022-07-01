@@ -6,7 +6,7 @@ use async_ssh2_lite::{AsyncAgent, AsyncSession, AsyncSessionStream};
 
 use super::{
     helpers::{get_connect_addr, is_internal_openssh_server_docker},
-    session__userauth_agent::exec_userauth_agent_with_try_next,
+    session__userauth_agent::__run__session__userauth_agent_with_try_next,
 };
 
 //
@@ -34,7 +34,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
         };
 
         let mut agent = AsyncAgent::new(stream)?;
-        exec_list_identities(&mut agent).await?;
+        __run__agent__list_identities(&mut agent).await?;
 
         Ok(())
     })
@@ -46,10 +46,8 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
 async fn from_session_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    exec_userauth_agent_with_try_next(&mut session).await?;
-
-    let mut agent = session.agent()?;
-    exec_list_identities(&mut agent).await?;
+    __run__session__userauth_agent_with_try_next(&mut session).await?;
+    __run__session__agent__list_identities(&mut session).await?;
 
     Ok(())
 }
@@ -61,16 +59,23 @@ fn from_session_with_async_io() -> Result<(), Box<dyn error::Error>> {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        exec_userauth_agent_with_try_next(&mut session).await?;
-
-        let mut agent = session.agent()?;
-        exec_list_identities(&mut agent).await?;
+        __run__session__userauth_agent_with_try_next(&mut session).await?;
+        __run__session__agent__list_identities(&mut session).await?;
 
         Ok(())
     })
 }
 
-async fn exec_list_identities<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
+    session: &mut AsyncSession<S>,
+) -> Result<(), Box<dyn error::Error>> {
+    let mut agent = session.agent()?;
+    __run__agent__list_identities(&mut agent).await?;
+
+    Ok(())
+}
+
+async fn __run__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
     agent: &mut AsyncAgent<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     agent.connect().await?;

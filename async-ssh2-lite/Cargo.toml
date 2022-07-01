@@ -33,10 +33,13 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 cfg-if = { version = "1" }
 tempfile = { version = "3" }
+uuid = { version = "1", features = ["v4"] }
+rand = { version = "0.8" }
 
 env_logger = { version = "0.9" }
 
 [package.metadata.cargo-all-features]
 denylist = [
-    "_integration_tests"
+    "vendored-openssl",
+    "_integration_tests",
 ]

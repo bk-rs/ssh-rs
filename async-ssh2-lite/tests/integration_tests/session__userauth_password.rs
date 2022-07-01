@@ -1,3 +1,5 @@
+#![cfg(any(feature = "async-io", feature = "tokio"))]
+
 use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
@@ -29,7 +31,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
             let mut session =
                 AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None)
                     .await?;
-            exec_userauth_password(&mut session).await?;
+            __run__session__userauth_password(&mut session).await?;
             Result::<_, Box<dyn error::Error>>::Ok(())
         })
         .collect::<Vec<_>>();
@@ -61,7 +63,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
                     None,
                 )
                 .await?;
-                exec_userauth_password(&mut session).await?;
+                __run__session__userauth_password(&mut session).await?;
                 Result::<_, Box<dyn error::Error>>::Ok(())
             })
             .collect::<Vec<_>>();
@@ -74,7 +76,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
     })
 }
 
-async fn exec_userauth_password<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__userauth_password<S: AsyncSessionStream + Send + Sync>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;

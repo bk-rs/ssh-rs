@@ -138,16 +138,12 @@ where
 {
     pub async fn handshake(&mut self) -> Result<(), Error> {
         let sess = self.inner.clone();
-        let inner = &mut self.inner;
-
-        self.stream
-            .read_and_write_with(|| inner.handshake(), &sess)
-            .await
+        self.stream.rw_with(|| self.inner.handshake(), &sess).await
     }
 
     pub async fn userauth_password(&self, username: &str, password: &str) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.userauth_password(username, password),
                 &self.inner,
             )
@@ -160,7 +156,7 @@ where
         prompter: &mut P,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.userauth_keyboard_interactive(username, prompter),
                 &self.inner,
             )
@@ -187,7 +183,7 @@ where
         passphrase: Option<&str>,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || {
                     self.inner
                         .userauth_pubkey_file(username, pubkey, privatekey, passphrase)
@@ -206,7 +202,7 @@ where
         passphrase: Option<&str>,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || {
                     self.inner.userauth_pubkey_memory(
                         username,
@@ -230,7 +226,7 @@ where
         local_username: Option<&str>,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || {
                     self.inner.userauth_hostbased_file(
                         username,
@@ -252,13 +248,13 @@ where
 
     pub async fn auth_methods<'a>(&'a self, username: &'a str) -> Result<&str, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.auth_methods(username), &self.inner)
+            .rw_with(|| self.inner.auth_methods(username), &self.inner)
             .await
     }
 
     pub async fn method_pref(&self, method_type: MethodType, prefs: &str) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.method_pref(method_type, prefs), &self.inner)
+            .rw_with(|| self.inner.method_pref(method_type, prefs), &self.inner)
             .await
     }
 
@@ -271,7 +267,7 @@ where
         method_type: MethodType,
     ) -> Result<Vec<&'static str>, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.supported_algs(method_type), &self.inner)
+            .rw_with(|| self.inner.supported_algs(method_type), &self.inner)
             .await
     }
 
@@ -292,11 +288,14 @@ where
     pub async fn channel_session(&self) -> Result<AsyncChannel<S>, Error> {
         let channel = self
             .stream
-            .read_and_write_with(|| self.inner.channel_session(), &self.inner)
+            .rw_with(|| self.inner.channel_session(), &self.inner)
             .await?;
 
-        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
-        todo!()
+        Ok(AsyncChannel::from_parts(
+            channel,
+            self.inner.clone(),
+            self.stream.clone(),
+        ))
     }
 
     pub async fn channel_direct_tcpip(
@@ -307,14 +306,17 @@ where
     ) -> Result<AsyncChannel<S>, Error> {
         let channel = self
             .stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.channel_direct_tcpip(host, port, src),
                 &self.inner,
             )
             .await?;
 
-        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
-        todo!()
+        Ok(AsyncChannel::from_parts(
+            channel,
+            self.inner.clone(),
+            self.stream.clone(),
+        ))
     }
 
     pub async fn channel_forward_listen(
@@ -325,7 +327,7 @@ where
     ) -> Result<(AsyncListener<S>, u16), Error> {
         let (listener, port) = self
             .stream
-            .read_and_write_with(
+            .rw_with(
                 || {
                     self.inner
                         .channel_forward_listen(remote_port, host, queue_maxsize)
@@ -343,16 +345,13 @@ where
     pub async fn scp_recv(&self, path: &Path) -> Result<(AsyncChannel<S>, ScpFileStat), Error> {
         let (channel, scp_file_stat) = self
             .stream
-            .read_and_write_with(|| self.inner.scp_recv(path), &self.inner)
+            .rw_with(|| self.inner.scp_recv(path), &self.inner)
             .await?;
 
-        // ret.map(|(channel, scp_file_stat)| {
-        //     (
-        //         AsyncChannel::from_parts(channel, self.stream.clone()),
-        //         scp_file_stat,
-        //     )
-        // })
-        todo!()
+        Ok((
+            AsyncChannel::from_parts(channel, self.inner.clone(), self.stream.clone()),
+            scp_file_stat,
+        ))
     }
 
     pub async fn scp_send(
@@ -364,20 +363,23 @@ where
     ) -> Result<AsyncChannel<S>, Error> {
         let channel = self
             .stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.scp_send(remote_path, mode, size, times),
                 &self.inner,
             )
             .await?;
 
-        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
-        todo!()
+        Ok(AsyncChannel::from_parts(
+            channel,
+            self.inner.clone(),
+            self.stream.clone(),
+        ))
     }
 
     pub async fn sftp(&self) -> Result<AsyncSftp<S>, Error> {
         let sftp = self
             .stream
-            .read_and_write_with(|| self.inner.sftp(), &self.inner)
+            .rw_with(|| self.inner.sftp(), &self.inner)
             .await?;
 
         Ok(AsyncSftp::from_parts(
@@ -396,7 +398,7 @@ where
     ) -> Result<AsyncChannel<S>, Error> {
         let channel = self
             .stream
-            .read_and_write_with(
+            .rw_with(
                 || {
                     self.inner
                         .channel_open(channel_type, window_size, packet_size, message)
@@ -405,8 +407,11 @@ where
             )
             .await?;
 
-        // ret.map(|channel| AsyncChannel::from_parts(channel, self.stream.clone()))
-        todo!()
+        Ok(AsyncChannel::from_parts(
+            channel,
+            self.inner.clone(),
+            self.stream.clone(),
+        ))
     }
 
     pub fn host_key(&self) -> Option<(&[u8], HostKeyType)> {
@@ -419,7 +424,7 @@ where
 
     pub async fn keepalive_send(&self) -> Result<u32, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.keepalive_send(), &self.inner)
+            .rw_with(|| self.inner.keepalive_send(), &self.inner)
             .await
     }
 
@@ -430,7 +435,7 @@ where
         lang: Option<&str>,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.disconnect(reason, description, lang),
                 &self.inner,
             )

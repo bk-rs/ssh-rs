@@ -3,7 +3,7 @@ use core::{
     task::{Context, Poll},
 };
 use std::{
-    io::{Error as IoError, Read, Seek, SeekFrom, Write},
+    io::{Error as IoError, Read as _, Seek, SeekFrom, Write as _},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -13,6 +13,7 @@ use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Session, Sftp};
 
 use crate::{error::Error, session_stream::AsyncSessionStream};
 
+//
 pub struct AsyncSftp<S> {
     inner: Sftp,
     sess: Session,
@@ -42,7 +43,7 @@ where
     ) -> Result<AsyncFile<S>, Error> {
         let file = self
             .stream
-            .read_and_write_with(
+            .rw_with(
                 || self.inner.open_mode(filename, flags, mode, open_type),
                 &self.sess,
             )
@@ -58,7 +59,7 @@ where
     pub async fn open(&self, filename: &Path) -> Result<AsyncFile<S>, Error> {
         let file = self
             .stream
-            .read_and_write_with(|| self.inner.open(filename), &self.sess)
+            .rw_with(|| self.inner.open(filename), &self.sess)
             .await?;
 
         Ok(AsyncFile::from_parts(
@@ -71,7 +72,7 @@ where
     pub async fn create(&self, filename: &Path) -> Result<AsyncFile<S>, Error> {
         let file = self
             .stream
-            .read_and_write_with(|| self.inner.create(filename), &self.sess)
+            .rw_with(|| self.inner.create(filename), &self.sess)
             .await?;
 
         Ok(AsyncFile::from_parts(
@@ -84,7 +85,7 @@ where
     pub async fn opendir(&self, dirname: &Path) -> Result<AsyncFile<S>, Error> {
         let file = self
             .stream
-            .read_and_write_with(|| self.inner.opendir(dirname), &self.sess)
+            .rw_with(|| self.inner.opendir(dirname), &self.sess)
             .await?;
 
         Ok(AsyncFile::from_parts(
@@ -96,55 +97,55 @@ where
 
     pub async fn readdir(&self, dirname: &Path) -> Result<Vec<(PathBuf, FileStat)>, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.readdir(dirname), &self.sess)
+            .rw_with(|| self.inner.readdir(dirname), &self.sess)
             .await
     }
 
     pub async fn mkdir(&self, filename: &Path, mode: i32) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.mkdir(filename, mode), &self.sess)
+            .rw_with(|| self.inner.mkdir(filename, mode), &self.sess)
             .await
     }
 
     pub async fn rmdir(&self, filename: &Path) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.rmdir(filename), &self.sess)
+            .rw_with(|| self.inner.rmdir(filename), &self.sess)
             .await
     }
 
     pub async fn stat(&self, filename: &Path) -> Result<FileStat, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.stat(filename), &self.sess)
+            .rw_with(|| self.inner.stat(filename), &self.sess)
             .await
     }
 
     pub async fn lstat(&self, filename: &Path) -> Result<FileStat, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.lstat(filename), &self.sess)
+            .rw_with(|| self.inner.lstat(filename), &self.sess)
             .await
     }
 
     pub async fn setstat(&self, filename: &Path, stat: FileStat) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.setstat(filename, stat.clone()), &self.sess)
+            .rw_with(|| self.inner.setstat(filename, stat.clone()), &self.sess)
             .await
     }
 
     pub async fn symlink(&self, path: &Path, target: &Path) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.symlink(path, target), &self.sess)
+            .rw_with(|| self.inner.symlink(path, target), &self.sess)
             .await
     }
 
     pub async fn readlink(&self, path: &Path) -> Result<PathBuf, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.readlink(path), &self.sess)
+            .rw_with(|| self.inner.readlink(path), &self.sess)
             .await
     }
 
     pub async fn realpath(&self, path: &Path) -> Result<PathBuf, Error> {
         self.stream
-            .read_and_write_with(|| self.inner.realpath(path), &self.sess)
+            .rw_with(|| self.inner.realpath(path), &self.sess)
             .await
     }
 
@@ -155,13 +156,13 @@ where
         flags: Option<RenameFlags>,
     ) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.rename(src, dst, flags), &self.sess)
+            .rw_with(|| self.inner.rename(src, dst, flags), &self.sess)
             .await
     }
 
     pub async fn unlink(&self, file: &Path) -> Result<(), Error> {
         self.stream
-            .read_and_write_with(|| self.inner.unlink(file), &self.sess)
+            .rw_with(|| self.inner.unlink(file), &self.sess)
             .await
     }
 }

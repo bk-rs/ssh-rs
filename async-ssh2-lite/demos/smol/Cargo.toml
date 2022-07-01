@@ -5,10 +5,6 @@ authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2021"
 
 [[bin]]
-name = "download_file"
-path = "src/download_file.rs"
-
-[[bin]]
 name = "inspect_sftp"
 path = "src/inspect_sftp.rs"
 
@@ -21,16 +17,8 @@ name = "remote_port_forwarding"
 path = "src/remote_port_forwarding.rs"
 
 [[bin]]
-name = "run_commands"
-path = "src/run_commands.rs"
-
-[[bin]]
 name = "sample"
 path = "src/sample.rs"
-
-[[bin]]
-name = "upload_file"
-path = "src/upload_file.rs"
 
 [dependencies]
 async-ssh2-lite = { path = "../..", version = "0.2", futures = ["async-io"] }

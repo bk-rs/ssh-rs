@@ -1,3 +1,5 @@
+#![cfg(any(feature = "async-io", feature = "tokio"))]
+
 use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
@@ -10,11 +12,11 @@ use super::helpers::{get_connect_addr, get_username};
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    exec_userauth_agent_with_try_next(&mut session).await?;
+    __run__session__userauth_agent_with_try_next(&mut session).await?;
 
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    exec_userauth_agent(&mut session).await?;
+    __run__session__userauth_agent(&mut session).await?;
 
     Ok(())
 }
@@ -26,18 +28,20 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        exec_userauth_agent_with_try_next(&mut session).await?;
+        __run__session__userauth_agent_with_try_next(&mut session).await?;
 
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        exec_userauth_agent(&mut session).await?;
+        __run__session__userauth_agent(&mut session).await?;
 
         Ok(())
     })
 }
 
-pub(crate) async fn exec_userauth_agent_with_try_next<S: AsyncSessionStream + Send + Sync>(
+pub(crate) async fn __run__session__userauth_agent_with_try_next<
+    S: AsyncSessionStream + Send + Sync,
+>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
@@ -52,7 +56,7 @@ pub(crate) async fn exec_userauth_agent_with_try_next<S: AsyncSessionStream + Se
     Ok(())
 }
 
-async fn exec_userauth_agent<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__userauth_agent<S: AsyncSessionStream + Send + Sync>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
