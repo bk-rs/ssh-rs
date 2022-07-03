@@ -1,6 +1,6 @@
 [package]
 name = "async-ssh2-lite"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2021"
 description = "Asynchronous ssh2."
@@ -13,7 +13,7 @@ categories = ["asynchronous", "network-programming"]
 readme = "README.md"
 
 [features]
-default = ["async-io", "tokio", "_integration_tests"]
+default = []
 
 vendored-openssl = ["ssh2/vendored-openssl"]
 
