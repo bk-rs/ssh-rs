@@ -56,7 +56,9 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
     })
 }
 
-async fn __run__session__userauth_pubkey_file<S: AsyncSessionStream + Send + Sync>(
+pub(crate) async fn __run__session__userauth_pubkey_file<
+    S: AsyncSessionStream + Send + Sync + 'static,
+>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
@@ -75,7 +77,7 @@ async fn __run__session__userauth_pubkey_file<S: AsyncSessionStream + Send + Syn
 }
 
 #[cfg(unix)]
-async fn __run__session__userauth_pubkey_memory<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__userauth_pubkey_memory<S: AsyncSessionStream + Send + Sync + 'static>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;

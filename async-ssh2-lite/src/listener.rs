@@ -24,7 +24,7 @@ impl<S> AsyncListener<S> {
 
 impl<S> AsyncListener<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub async fn accept(&mut self) -> Result<AsyncChannel<S>, Error> {
         let channel = self

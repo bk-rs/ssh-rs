@@ -8,14 +8,6 @@ edition = "2021"
 name = "proxy_jump"
 path = "src/proxy_jump.rs"
 
-[[bin]]
-name = "remote_port_forwarding"
-path = "src/remote_port_forwarding.rs"
-
-[[bin]]
-name = "sample"
-path = "src/sample.rs"
-
 [dependencies]
 async-ssh2-lite = { path = "../..", version = "0.2", features = ["async-io"] }
 futures = "0.3"

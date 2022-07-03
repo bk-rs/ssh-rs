@@ -12,6 +12,9 @@ mod integration_tests {
     mod channel__exec;
 
     #[cfg(test)]
+    mod session__channel_forward_listen;
+
+    #[cfg(test)]
     mod session__scp_send_and_scp_recv;
 
     #[cfg(test)]

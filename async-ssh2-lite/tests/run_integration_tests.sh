@@ -16,7 +16,10 @@ run="${script_path_root}../../openssh_server_docker/simple/run.sh"
 read LOWERPORT UPPERPORT < /proc/sys/net/ipv4/ip_local_port_range
 listen_port=$(comm -23 <(seq $LOWERPORT $UPPERPORT | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
 
-export INTERNAL_OPENSSH_SERVER_DOCKER="1"
+export IS_INTERNAL_TEST_OPENSSH_SERVER="1"
+export SSH_SERVER_HOST="127.0.0.1"
 export SSH_SERVER_PORT="${listen_port}"
+export SSH_USERNAME="linuxserver.io"
+export SSH_PASSWORD="password"
 
 ${run} ${version} ${listen_port} "cd ${script_path_root}..; cargo test -p async-ssh2-lite --features _integration_tests,async-io,tokio -- --nocapture"

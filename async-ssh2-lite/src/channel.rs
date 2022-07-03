@@ -31,7 +31,7 @@ impl<S> AsyncChannel<S> {
 
 impl<S> AsyncChannel<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub async fn setenv(&mut self, var: &str, val: &str) -> Result<(), Error> {
         self.stream
@@ -174,7 +174,7 @@ where
 
 impl<S> AsyncRead for AsyncChannel<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -187,7 +187,7 @@ where
 
 impl<S> AsyncWrite for AsyncChannel<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_write(
         self: Pin<&mut Self>,
@@ -227,7 +227,7 @@ impl<S> AsyncStream<S> {
 
 impl<S> AsyncRead for AsyncStream<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -244,7 +244,7 @@ where
 
 impl<S> AsyncWrite for AsyncStream<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_write(
         self: Pin<&mut Self>,

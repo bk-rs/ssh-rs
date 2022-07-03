@@ -5,8 +5,8 @@ use std::error;
 use async_ssh2_lite::{AsyncAgent, AsyncSession, AsyncSessionStream};
 
 use super::{
-    helpers::{get_connect_addr, is_internal_openssh_server_docker},
-    session__userauth_agent::__run__session__userauth_agent_with_try_next,
+    helpers::{get_connect_addr, is_internal_test_openssh_server},
+    session__userauth_pubkey::__run__session__userauth_pubkey_file,
 };
 
 //
@@ -46,7 +46,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
 async fn from_session_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    __run__session__userauth_agent_with_try_next(&mut session).await?;
+    __run__session__userauth_pubkey_file(&mut session).await?;
     __run__session__agent__list_identities(&mut session).await?;
 
     Ok(())
@@ -59,14 +59,14 @@ fn from_session_with_async_io() -> Result<(), Box<dyn error::Error>> {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        __run__session__userauth_agent_with_try_next(&mut session).await?;
+        __run__session__userauth_pubkey_file(&mut session).await?;
         __run__session__agent__list_identities(&mut session).await?;
 
         Ok(())
     })
 }
 
-async fn __run__session__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__agent__list_identities<S: AsyncSessionStream + Send + Sync + 'static>(
     session: &mut AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     let mut agent = session.agent()?;
@@ -75,7 +75,7 @@ async fn __run__session__agent__list_identities<S: AsyncSessionStream + Send + S
     Ok(())
 }
 
-async fn __run__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
+async fn __run__agent__list_identities<S: AsyncSessionStream + Send + Sync + 'static>(
     agent: &mut AsyncAgent<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     agent.connect().await?;
@@ -84,7 +84,7 @@ async fn __run__agent__list_identities<S: AsyncSessionStream + Send + Sync>(
 
     let identities = agent.identities()?;
 
-    if is_internal_openssh_server_docker() {
+    if is_internal_test_openssh_server() {
         assert!(identities
             .iter()
             .any(|x| x.comment().starts_with("ssh-rs/")))

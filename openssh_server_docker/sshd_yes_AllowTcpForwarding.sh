@@ -2,4 +2,4 @@
 
 set -ex
 
-sed -i "s/^AllowTcpForwarding[\t ].*/AllowTcpForwarding\tyes/" /etc/ssh/sshd_config
+sed -i -E "s/^[#]?AllowTcpForwarding[\t ].*/AllowTcpForwarding\tyes/" /etc/ssh/sshd_config

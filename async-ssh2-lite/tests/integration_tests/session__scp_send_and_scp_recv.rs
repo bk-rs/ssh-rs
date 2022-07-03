@@ -11,8 +11,7 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use uuid::Uuid;
 
 use super::{
-    helpers::get_connect_addr,
-    session__userauth_agent::__run__session__userauth_agent_with_try_next,
+    helpers::get_connect_addr, session__userauth_pubkey::__run__session__userauth_pubkey_file,
 };
 
 //
@@ -24,9 +23,9 @@ const FILE_SIZE: usize = 1024 * 512;
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
-    __run__session__userauth_agent_with_try_next(&mut session).await?;
+    __run__session__userauth_pubkey_file(&mut session).await?;
 
-    let remote_path = PathBuf::from("/tmp").join(Uuid::new_v4().to_string());
+    let remote_path = PathBuf::from("/tmp").join(format!("scp_{}", Uuid::new_v4()));
 
     __run__session__scp_send(&mut session, &remote_path).await?;
     __run__session__scp_recv(&mut session, &remote_path).await?;
@@ -41,9 +40,9 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
         let mut session =
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
-        __run__session__userauth_agent_with_try_next(&mut session).await?;
+        __run__session__userauth_pubkey_file(&mut session).await?;
 
-        let remote_path = PathBuf::from("/tmp").join(Uuid::new_v4().to_string());
+        let remote_path = PathBuf::from("/tmp").join(format!("scp_{}", Uuid::new_v4()));
 
         __run__session__scp_send(&mut session, &remote_path).await?;
         __run__session__scp_recv(&mut session, &remote_path).await?;
@@ -52,7 +51,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
     })
 }
 
-async fn __run__session__scp_send<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__scp_send<S: AsyncSessionStream + Send + Sync + 'static>(
     session: &mut AsyncSession<S>,
     remote_path: &Path,
 ) -> Result<(), Box<dyn error::Error>> {
@@ -71,7 +70,7 @@ async fn __run__session__scp_send<S: AsyncSessionStream + Send + Sync>(
     Ok(())
 }
 
-async fn __run__session__scp_recv<S: AsyncSessionStream + Send + Sync>(
+async fn __run__session__scp_recv<S: AsyncSessionStream + Send + Sync + 'static>(
     session: &mut AsyncSession<S>,
     remote_path: &Path,
 ) -> Result<(), Box<dyn error::Error>> {

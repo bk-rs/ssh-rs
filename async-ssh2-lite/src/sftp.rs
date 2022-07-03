@@ -32,7 +32,7 @@ impl<S> AsyncSftp<S> {
 
 impl<S> AsyncSftp<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub async fn open_mode(
         &self,
@@ -188,7 +188,7 @@ impl<S> AsyncFile<S> {
 
 impl<S> AsyncRead for AsyncFile<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -205,7 +205,7 @@ where
 
 impl<S> AsyncWrite for AsyncFile<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_write(
         self: Pin<&mut Self>,
@@ -234,7 +234,7 @@ where
 
 impl<S> AsyncSeek for AsyncFile<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     fn poll_seek(
         self: Pin<&mut Self>,

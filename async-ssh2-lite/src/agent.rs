@@ -76,7 +76,7 @@ impl<S> AsyncAgent<S> {
 
 impl<S> AsyncAgent<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub async fn connect(&mut self) -> Result<(), Error> {
         self.stream

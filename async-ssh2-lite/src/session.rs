@@ -22,6 +22,15 @@ pub struct AsyncSession<S> {
     stream: Arc<S>,
 }
 
+impl<S> Clone for AsyncSession<S> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            stream: self.stream.clone(),
+        }
+    }
+}
+
 #[cfg(unix)]
 impl<S> AsyncSession<S>
 where
@@ -134,7 +143,7 @@ impl<S> AsyncSession<S> {
 
 impl<S> AsyncSession<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub async fn handshake(&mut self) -> Result<(), Error> {
         let sess = self.inner.clone();
@@ -452,7 +461,7 @@ where
 //
 impl<S> AsyncSession<S>
 where
-    S: AsyncSessionStream + Send + Sync,
+    S: AsyncSessionStream + Send + Sync + 'static,
 {
     pub fn last_error(&self) -> Option<Ssh2Error> {
         Ssh2Error::last_session_error(&self.inner)
