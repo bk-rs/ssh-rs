@@ -1,5 +1,5 @@
 /*
-cargo run -p async-ssh2-lite-demo-smol --bin proxy_jump intranet.com:22 intranet_user bastion.com:22 bastion_user
+cargo run -p async-ssh2-lite-demo-smol --bin proxy_jump 172.17.0.1:2224 user_intranet 127.0.0.1:2223 user_bastion
 */
 
 #![recursion_limit = "256"]
@@ -82,7 +82,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
         bastion_session.handshake().await?;
 
         bastion_session
-            .userauth_agent(bastion_username.as_ref())
+            .userauth_agent_with_try_next(bastion_username.as_ref())
             .await?;
 
         if !bastion_session.authenticated() {
@@ -185,7 +185,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
         let mut session = AsyncSession::new(forward_stream_s, None)?;
         session.handshake().await?;
 
-        session.userauth_agent(username.as_ref()).await?;
+        session.userauth_agent_with_try_next(username.as_ref()).await?;
 
         if !session.authenticated() {
             return Err(session

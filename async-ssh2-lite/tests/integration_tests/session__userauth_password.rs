@@ -81,7 +81,11 @@ async fn __run__session__userauth_password<S: AsyncSessionStream + Send + Sync +
     i: usize,
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
-    println!("{} {:?} handshake", i, thread::current().id());
+    println!(
+        "handshake successful, i:{} thread_id:{:?}",
+        i,
+        thread::current().id()
+    );
 
     match session
         .userauth_password(get_username().as_ref(), "xxx")
@@ -111,7 +115,7 @@ async fn __run__session__userauth_password<S: AsyncSessionStream + Send + Sync +
         }
     }
     println!(
-        "{} {:?} session.userauth_password",
+        "session.userauth_password successful, i:{} thread_id:{:?}",
         i,
         thread::current().id()
     );

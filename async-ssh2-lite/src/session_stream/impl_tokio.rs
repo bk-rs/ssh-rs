@@ -21,7 +21,7 @@ impl AsyncSessionStream for TcpStream {
         &self,
         mut op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error> {
         loop {
@@ -39,18 +39,18 @@ impl AsyncSessionStream for TcpStream {
                     unreachable!("")
                 }
                 BlockDirections::Inbound => {
-                    assert!(maybe_block_directions.is_readable());
+                    assert!(expected_block_directions.is_readable());
 
                     self.readable().await?
                 }
                 BlockDirections::Outbound => {
-                    assert!(maybe_block_directions.is_writable());
+                    assert!(expected_block_directions.is_writable());
 
                     self.writable().await?
                 }
                 BlockDirections::Both => {
-                    assert!(maybe_block_directions.is_readable());
-                    assert!(maybe_block_directions.is_writable());
+                    assert!(expected_block_directions.is_readable());
+                    assert!(expected_block_directions.is_writable());
 
                     self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
                         .await?;
@@ -68,7 +68,7 @@ impl AsyncSessionStream for TcpStream {
         cx: &mut Context,
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
@@ -81,18 +81,18 @@ impl AsyncSessionStream for TcpStream {
                 unreachable!("")
             }
             BlockDirections::Inbound => {
-                assert!(maybe_block_directions.is_readable());
+                assert!(expected_block_directions.is_readable());
 
                 ready!(self.poll_read_ready(cx))?;
             }
             BlockDirections::Outbound => {
-                assert!(maybe_block_directions.is_writable());
+                assert!(expected_block_directions.is_writable());
 
                 ready!(self.poll_write_ready(cx))?;
             }
             BlockDirections::Both => {
-                assert!(maybe_block_directions.is_readable());
-                assert!(maybe_block_directions.is_writable());
+                assert!(expected_block_directions.is_readable());
+                assert!(expected_block_directions.is_writable());
 
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
@@ -121,7 +121,7 @@ impl AsyncSessionStream for UnixStream {
         &self,
         mut op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error> {
         loop {
@@ -139,18 +139,18 @@ impl AsyncSessionStream for UnixStream {
                     unreachable!("")
                 }
                 BlockDirections::Inbound => {
-                    assert!(maybe_block_directions.is_readable());
+                    assert!(expected_block_directions.is_readable());
 
                     self.readable().await?
                 }
                 BlockDirections::Outbound => {
-                    assert!(maybe_block_directions.is_writable());
+                    assert!(expected_block_directions.is_writable());
 
                     self.writable().await?
                 }
                 BlockDirections::Both => {
-                    assert!(maybe_block_directions.is_readable());
-                    assert!(maybe_block_directions.is_writable());
+                    assert!(expected_block_directions.is_readable());
+                    assert!(expected_block_directions.is_writable());
 
                     self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
                         .await?;
@@ -168,7 +168,7 @@ impl AsyncSessionStream for UnixStream {
         cx: &mut Context,
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
@@ -181,18 +181,18 @@ impl AsyncSessionStream for UnixStream {
                 unreachable!("")
             }
             BlockDirections::Inbound => {
-                assert!(maybe_block_directions.is_readable());
+                assert!(expected_block_directions.is_readable());
 
                 ready!(self.poll_read_ready(cx))?;
             }
             BlockDirections::Outbound => {
-                assert!(maybe_block_directions.is_writable());
+                assert!(expected_block_directions.is_writable());
 
                 ready!(self.poll_write_ready(cx))?;
             }
             BlockDirections::Both => {
-                assert!(maybe_block_directions.is_readable());
-                assert!(maybe_block_directions.is_writable());
+                assert!(expected_block_directions.is_readable());
+                assert!(expected_block_directions.is_writable());
 
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;

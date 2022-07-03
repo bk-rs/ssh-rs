@@ -511,7 +511,7 @@ where
 //
 //
 //
-#[derive(Default, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SessionConfiguration {
     banner: Option<String>,
     allow_sigpipe: Option<bool>,
@@ -548,7 +548,7 @@ impl SessionConfiguration {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct SessionKeepaliveConfiguration {
     want_reply: bool,
     interval: u32,

@@ -23,7 +23,7 @@ pub trait AsyncSessionStream {
         &self,
         op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error>;
 
@@ -89,7 +89,7 @@ pub trait AsyncSessionStream {
         cx: &mut Context,
         op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        maybe_block_directions: BlockDirections,
+        expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>>;
 

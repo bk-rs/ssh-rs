@@ -18,27 +18,25 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
     __run__session__userauth_pubkey_file(&mut session).await?;
 
-    __run__session__channel_forward_listen__with_tokio(session).await?;
+    __run__session__channel_forward_listen__with_tokio_spawn(session).await?;
 
     Ok(())
 }
 
-// #[cfg(feature = "async-io")]
-// #[test]
-// fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
-//     futures_lite::future::block_on(async {
-//         let mut session =
-//             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
-//                 .await?;
-//         __run__session__userauth_pubkey_file(&mut session).await?;
+#[cfg(feature = "async-io")]
+#[tokio::test]
+async fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
+    let mut session =
+        AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
+            .await?;
+    __run__session__userauth_pubkey_file(&mut session).await?;
 
-//         __run__session__channel_forward_listen(&mut session).await?;
+    __run__session__channel_forward_listen__with_tokio_spawn(session).await?;
 
-//         Ok(())
-//     })
-// }
+    Ok(())
+}
 
-async fn __run__session__channel_forward_listen__with_tokio<
+async fn __run__session__channel_forward_listen__with_tokio_spawn<
     S: AsyncSessionStream + Send + Sync + 'static,
 >(
     session: AsyncSession<S>,
@@ -129,10 +127,10 @@ async fn __run__session__channel_forward_listen__with_tokio<
                     .await?;
                 let mut s = String::new();
                 channel.read_to_string(&mut s).await?;
-                println!("exec curl output:{} i:{}", i, s);
+                println!("exec curl output:{} i:{}", s, i);
                 assert_eq!(s, "200");
                 channel.close().await?;
-                println!("exec curl exit_status:{} i:{}", i, channel.exit_status()?);
+                println!("exec curl exit_status:{} i:{}", channel.exit_status()?, i);
                 Result::<_, Box<dyn error::Error>>::Ok(())
             }
         })
