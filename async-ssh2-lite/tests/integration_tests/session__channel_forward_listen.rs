@@ -84,28 +84,42 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
             loop {
                 match listener.accept().await {
                     Ok(mut channel) => {
-                        let mut buf = vec![0; 64];
-                        channel.read(&mut buf).await?;
-                        println!(
-                            "channel.read successful, data:{}",
-                            String::from_utf8_lossy(&buf)
-                        );
-                        if buf.starts_with(b"GET / HTTP/1.1\r\n") {
-                            channel.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await?;
-                        } else {
-                            channel
-                                .write_all(b"HTTP/1.1 400 Bad Request\r\n\r\n")
-                                .await?;
-                            break;
-                        }
+                        tokio::task::spawn(async move {
+                            let mut buf = vec![0; 128];
+                            let mut n_read = 0;
+                            loop {
+                                let n = channel.read(&mut buf[n_read..]).await?;
+                                n_read += n;
+                                if n == 0 {
+                                    break;
+                                }
+                                // TODO, parse buf
+                                if n_read >= 78 {
+                                    break;
+                                }
+                            }
+                            println!(
+                                "channel.read successful, data:{}",
+                                String::from_utf8_lossy(&buf)
+                            );
+                            if buf.starts_with(b"GET / HTTP/1.1\r\n") {
+                                channel.write_all(b"HTTP/1.1 200 OK\r\n\r\n").await?;
+                            } else {
+                                channel
+                                    .write_all(b"HTTP/1.1 400 Bad Request\r\n\r\n")
+                                    .await?;
+                            }
+                            channel.send_eof().await?;
+                            channel.wait_close().await?;
+
+                            Result::<(), Box<dyn error::Error + Send + Sync>>::Ok(())
+                        });
                     }
                     Err(err) => {
                         eprintln!("listener.accept failed, err:{:?}", err);
                     }
                 }
             }
-
-            Ok(())
         });
 
     //
