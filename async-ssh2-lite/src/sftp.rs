@@ -1,14 +1,8 @@
-use core::{
-    pin::Pin,
-    task::{Context, Poll},
-};
 use std::{
-    io::{Error as IoError, Read as _, Seek, SeekFrom, Write as _},
     path::{Path, PathBuf},
     sync::Arc,
 };
 
-use futures_util::io::{AsyncRead, AsyncSeek, AsyncWrite};
 use ssh2::{File, FileStat, OpenFlags, OpenType, RenameFlags, Session, Sftp};
 
 use crate::{error::Error, session_stream::AsyncSessionStream};
@@ -168,8 +162,6 @@ where
 }
 
 //
-//
-//
 pub struct AsyncFile<S> {
     inner: File,
     sess: Session,
@@ -186,65 +178,79 @@ impl<S> AsyncFile<S> {
     }
 }
 
-impl<S> AsyncRead for AsyncFile<S>
-where
-    S: AsyncSessionStream + Send + Sync + 'static,
-{
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<Result<usize, IoError>> {
-        let this = self.get_mut();
-        let sess = this.sess.clone();
-        let inner = &mut this.inner;
+mod impl_futures_util {
+    use core::{
+        pin::Pin,
+        task::{Context, Poll},
+    };
+    use std::io::{Error as IoError, Read as _, Seek, SeekFrom, Write as _};
 
-        this.stream.poll_read_with(cx, || inner.read(buf), &sess)
-    }
-}
+    use futures_util::io::{AsyncRead, AsyncSeek, AsyncWrite};
 
-impl<S> AsyncWrite for AsyncFile<S>
-where
-    S: AsyncSessionStream + Send + Sync + 'static,
-{
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-        buf: &[u8],
-    ) -> Poll<Result<usize, IoError>> {
-        let this = self.get_mut();
-        let sess = this.sess.clone();
-        let inner = &mut this.inner;
+    use super::AsyncFile;
+    use crate::session_stream::AsyncSessionStream;
 
-        this.stream.poll_write_with(cx, || inner.write(buf), &sess)
+    //
+    impl<S> AsyncRead for AsyncFile<S>
+    where
+        S: AsyncSessionStream + Send + Sync + 'static,
+    {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            buf: &mut [u8],
+        ) -> Poll<Result<usize, IoError>> {
+            let this = self.get_mut();
+            let sess = this.sess.clone();
+            let inner = &mut this.inner;
+
+            this.stream.poll_read_with(cx, || inner.read(buf), &sess)
+        }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
-        let this = self.get_mut();
-        let sess = this.sess.clone();
-        let inner = &mut this.inner;
+    impl<S> AsyncWrite for AsyncFile<S>
+    where
+        S: AsyncSessionStream + Send + Sync + 'static,
+    {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            cx: &mut Context,
+            buf: &[u8],
+        ) -> Poll<Result<usize, IoError>> {
+            let this = self.get_mut();
+            let sess = this.sess.clone();
+            let inner = &mut this.inner;
 
-        this.stream.poll_write_with(cx, || inner.flush(), &sess)
+            this.stream.poll_write_with(cx, || inner.write(buf), &sess)
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
+            let this = self.get_mut();
+            let sess = this.sess.clone();
+            let inner = &mut this.inner;
+
+            this.stream.poll_write_with(cx, || inner.flush(), &sess)
+        }
+
+        fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
+            self.poll_flush(cx)
+        }
     }
 
-    fn poll_close(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), IoError>> {
-        self.poll_flush(cx)
-    }
-}
+    impl<S> AsyncSeek for AsyncFile<S>
+    where
+        S: AsyncSessionStream + Send + Sync + 'static,
+    {
+        fn poll_seek(
+            self: Pin<&mut Self>,
+            cx: &mut Context<'_>,
+            pos: SeekFrom,
+        ) -> Poll<Result<u64, IoError>> {
+            let this = self.get_mut();
+            let sess = this.sess.clone();
+            let inner = &mut this.inner;
 
-impl<S> AsyncSeek for AsyncFile<S>
-where
-    S: AsyncSessionStream + Send + Sync + 'static,
-{
-    fn poll_seek(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        pos: SeekFrom,
-    ) -> Poll<Result<u64, IoError>> {
-        let this = self.get_mut();
-        let sess = this.sess.clone();
-        let inner = &mut this.inner;
-
-        this.stream.poll_read_with(cx, || inner.seek(pos), &sess)
+            this.stream.poll_read_with(cx, || inner.seek(pos), &sess)
+        }
     }
 }

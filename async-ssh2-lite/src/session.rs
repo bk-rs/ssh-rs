@@ -459,14 +459,16 @@ where
 //
 // extension
 //
+impl<S> AsyncSession<S> {
+    pub fn last_error(&self) -> Option<Ssh2Error> {
+        Ssh2Error::last_session_error(&self.inner)
+    }
+}
+
 impl<S> AsyncSession<S>
 where
     S: AsyncSessionStream + Send + Sync + 'static,
 {
-    pub fn last_error(&self) -> Option<Ssh2Error> {
-        Ssh2Error::last_session_error(&self.inner)
-    }
-
     pub async fn userauth_agent_with_try_next(&self, username: &str) -> Result<(), Error> {
         self.userauth_agent_with_try_next_with_callback(username, |identities| identities)
             .await
