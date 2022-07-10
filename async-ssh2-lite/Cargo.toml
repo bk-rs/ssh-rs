@@ -36,6 +36,8 @@ tempfile = { version = "3" }
 uuid = { version = "1", features = ["v4"] }
 rand = { version = "0.8" }
 
+hyper = { version = "0.14", features = ["server", "client", "http1"] }
+
 env_logger = { version = "0.9" }
 
 [package.metadata.cargo-all-features]

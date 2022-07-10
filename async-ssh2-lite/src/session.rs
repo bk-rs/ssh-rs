@@ -456,6 +456,82 @@ where
     }
 }
 
+#[cfg(feature = "tokio")]
+impl<S> AsyncSession<S>
+where
+    S: AsyncSessionStream + Send + Sync + 'static,
+{
+    pub async fn remote_port_forwarding(
+        &self,
+        remote_host: Option<&str>,
+        remote_port: u16,
+        local: crate::util::ConnectInfo,
+    ) -> Result<(), Error> {
+        #[cfg(unix)]
+        use crate::TokioUnixStream;
+        use crate::{util::ConnectInfo, TokioTcpStream};
+
+        match local {
+            ConnectInfo::Tcp(addr) => {
+                let (mut listener, _remote_port) = self
+                    .channel_forward_listen(remote_port, remote_host, None)
+                    .await?;
+
+                loop {
+                    match listener.accept().await {
+                        Ok(mut channel) => {
+                            let join_handle = tokio::task::spawn(async move {
+                                let mut stream = TokioTcpStream::connect(addr).await?;
+                                tokio::io::copy_bidirectional(&mut channel, &mut stream).await?;
+
+                                Result::<_, Error>::Ok(())
+                            });
+                            match join_handle.await {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    eprintln!("join_handle failed, err:{:?}", err);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("listener.accept failed, err:{:?}", err);
+                        }
+                    }
+                }
+            }
+            #[cfg(unix)]
+            ConnectInfo::Unix(path) => {
+                let (mut listener, _remote_port) = self
+                    .channel_forward_listen(remote_port, remote_host, None)
+                    .await?;
+
+                loop {
+                    match listener.accept().await {
+                        Ok(mut channel) => {
+                            let path = path.clone();
+                            let join_handle = tokio::task::spawn(async move {
+                                let mut stream = TokioUnixStream::connect(path).await?;
+                                tokio::io::copy_bidirectional(&mut channel, &mut stream).await?;
+
+                                Result::<_, Error>::Ok(())
+                            });
+                            match join_handle.await {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    eprintln!("join_handle failed, err:{:?}", err);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("listener.accept failed, err:{:?}", err);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 //
 // extension
 //
