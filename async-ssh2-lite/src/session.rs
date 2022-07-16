@@ -463,10 +463,16 @@ where
 {
     pub async fn remote_port_forwarding(
         &self,
-        remote_host: Option<&str>,
         remote_port: u16,
+        host: Option<&str>,
+        queue_maxsize: Option<u32>,
         local: crate::util::ConnectInfo,
     ) -> Result<(), Error> {
+        use std::io::Error as IoError;
+
+        use futures_util::{select, FutureExt as _};
+        use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+
         #[cfg(unix)]
         use crate::TokioUnixStream;
         use crate::{util::ConnectInfo, TokioTcpStream};
@@ -474,18 +480,58 @@ where
         match local {
             ConnectInfo::Tcp(addr) => {
                 let (mut listener, _remote_port) = self
-                    .channel_forward_listen(remote_port, remote_host, None)
+                    .channel_forward_listen(remote_port, host, queue_maxsize)
                     .await?;
+
+                // TODO, tokio::io::copy_bidirectional not working
 
                 loop {
                     match listener.accept().await {
                         Ok(mut channel) => {
-                            let join_handle = tokio::task::spawn(async move {
-                                let mut stream = TokioTcpStream::connect(addr).await?;
-                                tokio::io::copy_bidirectional(&mut channel, &mut stream).await?;
+                            let join_handle: tokio::task::JoinHandle<Result<(), IoError>> =
+                                tokio::task::spawn(async move {
+                                    let mut stream = TokioTcpStream::connect(addr).await?;
 
-                                Result::<_, Error>::Ok(())
-                            });
+                                    let mut buf_channel = vec![0; 2048];
+                                    let mut buf_stream = vec![0; 2048];
+
+                                    loop {
+                                        select! {
+                                            ret_channel_read = futures_util::AsyncReadExt::read(&mut channel, &mut buf_channel).fuse() => match ret_channel_read {
+                                                Ok(n) if n == 0 => {
+                                                    break
+                                                },
+                                                Ok(n) => {
+                                                    #[allow(clippy::map_identity)]
+                                                    stream.write(&buf_channel[..n]).await.map(|_| ()).map_err(|err| {
+                                                        // TODO, log
+                                                        err
+                                                    })?
+                                                },
+                                                Err(err) =>  {
+                                                    return Err(err);
+                                                }
+                                            },
+                                            ret_stream_read = stream.read(&mut buf_stream).fuse() => match ret_stream_read {
+                                                Ok(n) if n == 0 => {
+                                                    break
+                                                },
+                                                Ok(n) => {
+                                                    #[allow(clippy::map_identity)]
+                                                    futures_util::AsyncWriteExt::write(&mut channel,&buf_stream[..n]).await.map(|_| ()).map_err(|err| {
+                                                        // TODO, log
+                                                        err
+                                                    })?
+                                                },
+                                                Err(err) => {
+                                                    return Err(err);
+                                                }
+                                            },
+                                        }
+                                    }
+
+                                    Result::<_, IoError>::Ok(())
+                                });
                             match join_handle.await {
                                 Ok(_) => {}
                                 Err(err) => {
@@ -502,19 +548,59 @@ where
             #[cfg(unix)]
             ConnectInfo::Unix(path) => {
                 let (mut listener, _remote_port) = self
-                    .channel_forward_listen(remote_port, remote_host, None)
+                    .channel_forward_listen(remote_port, host, queue_maxsize)
                     .await?;
+
+                // TODO, tokio::io::copy_bidirectional not working
 
                 loop {
                     match listener.accept().await {
                         Ok(mut channel) => {
                             let path = path.clone();
-                            let join_handle = tokio::task::spawn(async move {
-                                let mut stream = TokioUnixStream::connect(path).await?;
-                                tokio::io::copy_bidirectional(&mut channel, &mut stream).await?;
+                            let join_handle: tokio::task::JoinHandle<Result<(), IoError>> =
+                                tokio::task::spawn(async move {
+                                    let mut stream = TokioUnixStream::connect(path).await?;
 
-                                Result::<_, Error>::Ok(())
-                            });
+                                    let mut buf_channel = vec![0; 2048];
+                                    let mut buf_stream = vec![0; 2048];
+
+                                    loop {
+                                        select! {
+                                            ret_channel_read = futures_util::AsyncReadExt::read(&mut channel, &mut buf_channel).fuse() => match ret_channel_read {
+                                                Ok(n) if n == 0 => {
+                                                    break
+                                                },
+                                                Ok(n) => {
+                                                    #[allow(clippy::map_identity)]
+                                                    stream.write(&buf_channel[..n]).await.map(|_| ()).map_err(|err| {
+                                                        // TODO, log
+                                                        err
+                                                    })?
+                                                },
+                                                Err(err) =>  {
+                                                    return Err(err);
+                                                }
+                                            },
+                                            ret_stream_read = stream.read(&mut buf_stream).fuse() => match ret_stream_read {
+                                                Ok(n) if n == 0 => {
+                                                    break
+                                                },
+                                                Ok(n) => {
+                                                    #[allow(clippy::map_identity)]
+                                                    futures_util::AsyncWriteExt::write(&mut channel,&buf_stream[..n]).await.map(|_| ()).map_err(|err| {
+                                                        // TODO, log
+                                                        err
+                                                    })?
+                                                },
+                                                Err(err) => {
+                                                    return Err(err);
+                                                }
+                                            },
+                                        }
+                                    }
+
+                                    Result::<_, IoError>::Ok(())
+                                });
                             match join_handle.await {
                                 Ok(_) => {}
                                 Err(err) => {

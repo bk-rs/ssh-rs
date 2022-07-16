@@ -2,7 +2,7 @@
 
 use std::error;
 
-use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
+use async_ssh2_lite::{AsyncSession, AsyncSessionStream, Error};
 
 use super::helpers::{get_connect_addr, get_privatekey_path, get_username};
 
@@ -60,7 +60,7 @@ pub(crate) async fn __run__session__userauth_pubkey_file<
     S: AsyncSessionStream + Send + Sync + 'static,
 >(
     session: &mut AsyncSession<S>,
-) -> Result<(), Box<dyn error::Error>> {
+) -> Result<(), Error> {
     session.handshake().await?;
 
     session

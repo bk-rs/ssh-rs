@@ -61,3 +61,8 @@ pub(super) fn is_internal_test_openssh_server() -> bool {
 pub(super) fn init_logger() {
     let _ = env_logger::builder().is_test(true).try_init();
 }
+
+//
+pub(super) fn get_listen_addr() -> SocketAddr {
+    SocketAddr::from(([0, 0, 0, 0], portpicker::pick_unused_port().unwrap()))
+}
