@@ -4,7 +4,10 @@ use std::error;
 
 use async_ssh2_lite::{ssh2::ErrorCode, AsyncSession, AsyncSessionStream, Error};
 use futures_util::future::join_all;
+#[cfg(not(feature = "_integration_tests_tokio_ext"))]
 use futures_util::{AsyncReadExt as _, AsyncWriteExt as _};
+#[cfg(feature = "_integration_tests_tokio_ext")]
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
 use super::{
     helpers::get_connect_addr, session__userauth_pubkey::__run__session__userauth_pubkey_file,

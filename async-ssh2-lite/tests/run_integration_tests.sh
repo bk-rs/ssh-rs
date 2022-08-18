@@ -23,3 +23,4 @@ export SSH_USERNAME="linuxserver.io"
 export SSH_PASSWORD="password"
 
 ${run} ${version} ${listen_port} "cd ${script_path_root}..; cargo test -p async-ssh2-lite --features _integration_tests,async-io,tokio -- --nocapture"
+${run} ${version} ${listen_port} "cd ${script_path_root}..; cargo test -p async-ssh2-lite --features _integration_tests,_integration_tests_tokio_ext,async-io,tokio -- --nocapture"

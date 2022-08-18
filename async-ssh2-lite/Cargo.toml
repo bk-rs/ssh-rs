@@ -18,6 +18,7 @@ default = []
 vendored-openssl = ["ssh2/vendored-openssl"]
 
 _integration_tests = []
+_integration_tests_tokio_ext = []
 
 [dependencies]
 ssh2 = { version = "0.9", default-features = false }

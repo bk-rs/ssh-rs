@@ -4,7 +4,10 @@ use std::{error, net::SocketAddr};
 
 use async_ssh2_lite::{util::ConnectInfo, AsyncSession};
 use futures_util::future::join_all;
+#[cfg(not(feature = "_integration_tests_tokio_ext"))]
 use futures_util::AsyncReadExt as _;
+#[cfg(feature = "_integration_tests_tokio_ext")]
+use tokio::io::AsyncReadExt as _;
 
 use super::{
     helpers::{get_connect_addr, get_listen_addr, is_internal_test_openssh_server},
