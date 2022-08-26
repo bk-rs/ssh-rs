@@ -338,8 +338,20 @@ mod impl_tokio {
             let sess = this.sess.clone();
             let inner = &mut this.inner;
 
-            this.stream
-                .poll_read_with(cx, || inner.read(buf.filled_mut()).map(|_| {}), &sess)
+            this.stream.poll_read_with(
+                cx,
+                || {
+                    let size = inner.read(buf.initialize_unfilled());
+                    match size {
+                        Ok(size) => {
+                            buf.advance(size);
+                            Ok(())
+                        }
+                        Err(e) => Err(e),
+                    }
+                },
+                &sess,
+            )
         }
     }
 

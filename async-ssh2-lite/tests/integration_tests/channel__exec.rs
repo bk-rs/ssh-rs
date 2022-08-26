@@ -3,7 +3,10 @@
 use std::error;
 
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
+#[cfg(not(feature = "_integration_tests_tokio_ext"))]
 use futures_util::AsyncReadExt as _;
+#[cfg(feature = "_integration_tests_tokio_ext")]
+use tokio::io::AsyncReadExt as _;
 
 use super::{
     helpers::get_connect_addr, session__userauth_pubkey::__run__session__userauth_pubkey_file,
@@ -53,6 +56,14 @@ async fn __run__session__channel_session__exec<S: AsyncSessionStream + Send + Sy
     println!("exec date output:{}", s);
     channel.close().await?;
     println!("exec date exit_status:{}", channel.exit_status()?);
+
+    let mut channel = session.channel_session().await?;
+    channel.exec("head -c 16354 /dev/random").await?;
+    let mut b = vec![];
+    channel.read_to_end(&mut b).await?;
+    assert_eq!(b.len(), 16354);
+    channel.close().await?;
+    println!("exec head exit_status:{}", channel.exit_status()?);
 
     Ok(())
 }
