@@ -8,9 +8,9 @@ use std::{
 use async_ssh2_lite::{AsyncSession, AsyncSessionStream};
 #[cfg(not(feature = "_integration_tests_tokio_ext"))]
 use futures_util::{AsyncReadExt as _, AsyncWriteExt as _};
+use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 #[cfg(feature = "_integration_tests_tokio_ext")]
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
-use rand::{distributions::Alphanumeric, thread_rng, Rng as _};
 use uuid::Uuid;
 
 use super::{
