@@ -46,4 +46,5 @@ env_logger = { version = "0.9" }
 denylist = [
     "vendored-openssl",
     "_integration_tests",
+    "_integration_tests_tokio_ext",
 ]
