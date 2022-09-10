@@ -159,6 +159,12 @@ where
             .rw_with(|| self.inner.unlink(file), &self.sess)
             .await
     }
+
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
+        self.stream
+            .rw_with(|| self.inner.shutdown(), &self.sess)
+            .await
+    }
 }
 
 //
