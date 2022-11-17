@@ -24,7 +24,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
 
                     let dir = tempdir()?;
                     let path = dir.path().join("ssh_agent");
-                    Async::<UnixListener>::bind(&path)?
+                    Async::<UnixListener>::bind(path)?
                 } else {
                     use std::net::TcpListener;
 

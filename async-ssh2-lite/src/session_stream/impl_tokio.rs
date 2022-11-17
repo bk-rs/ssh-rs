@@ -94,8 +94,17 @@ impl AsyncSessionStream for TcpStream {
                 assert!(expected_block_directions.is_readable());
                 assert!(expected_block_directions.is_writable());
 
+                /*
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
+                */
+                match self.poll_write_ready(cx) {
+                    Poll::Ready(x) => x?,
+                    Poll::Pending => match self.poll_read_ready(cx) {
+                        Poll::Ready(x) => x?,
+                        Poll::Pending => return Poll::Pending,
+                    },
+                }
             }
         }
 
@@ -194,8 +203,17 @@ impl AsyncSessionStream for UnixStream {
                 assert!(expected_block_directions.is_readable());
                 assert!(expected_block_directions.is_writable());
 
+                /*
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
+                */
+                match self.poll_write_ready(cx) {
+                    Poll::Ready(x) => x?,
+                    Poll::Pending => match self.poll_read_ready(cx) {
+                        Poll::Ready(x) => x?,
+                        Poll::Pending => return Poll::Pending,
+                    },
+                }
             }
         }
 

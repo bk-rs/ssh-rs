@@ -98,8 +98,17 @@ where
                 assert!(expected_block_directions.is_writable());
 
                 // Must first poll_writable, because session__scp_send_and_scp_recv.rs
+                /*
                 ready!(self.poll_writable(cx))?;
                 ready!(self.poll_readable(cx))?;
+                */
+                match self.poll_writable(cx) {
+                    Poll::Ready(x) => x?,
+                    Poll::Pending => match self.poll_readable(cx) {
+                        Poll::Ready(x) => x?,
+                        Poll::Pending => return Poll::Pending,
+                    },
+                }
             }
         }
 
