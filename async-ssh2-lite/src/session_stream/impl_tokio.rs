@@ -35,9 +35,7 @@ impl AsyncSessionStream for TcpStream {
             }
 
             match sess.block_directions() {
-                BlockDirections::None => {
-                    unreachable!("")
-                }
+                BlockDirections::None => continue,
                 BlockDirections::Inbound => {
                     assert!(expected_block_directions.is_readable());
 
@@ -77,26 +75,20 @@ impl AsyncSessionStream for TcpStream {
         }
 
         match sess.block_directions() {
-            BlockDirections::None => {
-                unreachable!("")
-            }
-            BlockDirections::Inbound => {
-                assert!(expected_block_directions.is_readable());
-
+            BlockDirections::Inbound if expected_block_directions.is_readable() => {
                 ready!(self.poll_read_ready(cx))?;
             }
-            BlockDirections::Outbound => {
-                assert!(expected_block_directions.is_writable());
-
+            BlockDirections::Outbound if expected_block_directions.is_writable() => {
                 ready!(self.poll_write_ready(cx))?;
             }
-            BlockDirections::Both => {
-                assert!(expected_block_directions.is_readable());
-                assert!(expected_block_directions.is_writable());
-
+            BlockDirections::Both
+                if expected_block_directions.is_readable()
+                    && expected_block_directions.is_writable() =>
+            {
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
             }
+            _ => return Poll::Pending,
         }
 
         if let Some(dur) = sleep_dur {
