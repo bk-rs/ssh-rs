@@ -22,6 +22,7 @@ _integration_tests_tokio_ext = []
 
 [dependencies]
 ssh2 = { version = "0.9", default-features = false }
+libssh2-sys = { version = "0.2", default-features = false }
 futures-util = { version = "0.3", default-features = false, features = ["io", "std", "async-await-macro"] }
 async-trait = { version = "0.1", default-features = false }
 
