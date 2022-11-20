@@ -90,9 +90,27 @@ where
     }
 
     pub async fn readdir(&self, dirname: &Path) -> Result<Vec<(PathBuf, FileStat)>, Error> {
-        self.stream
-            .rw_with(|| self.inner.readdir(dirname), &self.sess)
-            .await
+        // Copy from ssh2
+        let mut dir = self.opendir(dirname).await?;
+        let mut ret = Vec::new();
+        loop {
+            match dir.readdir().await {
+                Ok((filename, stat)) => {
+                    if &*filename == Path::new(".") || &*filename == Path::new("..") {
+                        continue;
+                    }
+
+                    ret.push((dirname.join(&filename), stat))
+                }
+                Err(Error::Ssh2(ref e))
+                    if e.code() == ssh2::ErrorCode::Session(libssh2_sys::LIBSSH2_ERROR_FILE) =>
+                {
+                    break
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(ret)
     }
 
     pub async fn mkdir(&self, filename: &Path, mode: i32) -> Result<(), Error> {
@@ -181,6 +199,17 @@ impl<S> AsyncFile<S> {
             sess,
             stream,
         }
+    }
+}
+
+impl<S> AsyncFile<S>
+where
+    S: AsyncSessionStream + Send + Sync + 'static,
+{
+    pub async fn readdir(&mut self) -> Result<(PathBuf, FileStat), Error> {
+        self.stream
+            .rw_with(|| self.inner.readdir(), &self.sess)
+            .await
     }
 }
 

@@ -47,5 +47,10 @@ async fn __run__session__sftp<S: AsyncSessionStream + Send + Sync + 'static>(
     println!("sftp file_stat:{:?}", file_stat);
     sftp.unlink(&remote_path).await?;
 
+    let list = sftp.readdir(&PathBuf::from("/")).await?;
+    for (file_path, file_stat) in list.iter().take(10) {
+        println!("sftp file_path:{:?} file_stat:{:?}", file_path, file_stat);
+    }
+
     Ok(())
 }
