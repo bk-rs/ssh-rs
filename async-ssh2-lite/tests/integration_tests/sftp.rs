@@ -43,8 +43,16 @@ async fn __run__session__sftp<S: AsyncSessionStream + Send + Sync + 'static>(
     let remote_path = PathBuf::from("/tmp").join(format!("sftp_{}", Uuid::new_v4()));
 
     sftp.create(&remote_path).await?;
+
     let file_stat = sftp.stat(&remote_path).await?;
     println!("sftp file_stat:{:?}", file_stat);
+
+    let mut sftp_file = sftp.open(&remote_path).await?;
+    let file_stat_for_file = sftp_file.stat().await?;
+    println!("sftp file_stat_for_file:{:?}", file_stat_for_file);
+    sftp_file.close().await?;
+    assert_eq!(file_stat, file_stat_for_file);
+
     sftp.unlink(&remote_path).await?;
 
     let list = sftp.readdir(&PathBuf::from("/")).await?;

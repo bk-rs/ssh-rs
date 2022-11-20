@@ -206,10 +206,35 @@ impl<S> AsyncFile<S>
 where
     S: AsyncSessionStream + Send + Sync + 'static,
 {
+    pub async fn setstat(&mut self, stat: FileStat) -> Result<(), Error> {
+        self.stream
+            .rw_with(|| self.inner.setstat(stat.clone()), &self.sess)
+            .await
+    }
+
+    pub async fn stat(&mut self) -> Result<FileStat, Error> {
+        self.stream.rw_with(|| self.inner.stat(), &self.sess).await
+    }
+
+    pub async fn statvfs(&mut self) -> Result<libssh2_sys::LIBSSH2_SFTP_STATVFS, Error> {
+        self.stream
+            .rw_with(|| self.inner.statvfs(), &self.sess)
+            .await
+    }
+
     pub async fn readdir(&mut self) -> Result<(PathBuf, FileStat), Error> {
         self.stream
             .rw_with(|| self.inner.readdir(), &self.sess)
             .await
+    }
+
+    pub async fn fsync(&mut self) -> Result<(), Error> {
+        self.stream.rw_with(|| self.inner.fsync(), &self.sess).await
+    }
+
+    #[doc(hidden)]
+    pub async fn close(&mut self) -> Result<(), Error> {
+        self.stream.rw_with(|| self.inner.close(), &self.sess).await
     }
 }
 
