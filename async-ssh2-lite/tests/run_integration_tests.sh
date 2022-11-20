@@ -24,3 +24,18 @@ export SSH_PASSWORD="password"
 
 ${run} ${version} ${listen_port} "cd ${script_path_root}..; cargo test -p async-ssh2-lite --features _integration_tests,async-io,tokio -- --nocapture"
 ${run} ${version} ${listen_port} "cd ${script_path_root}..; cargo test -p async-ssh2-lite --features _integration_tests,_integration_tests_tokio_ext,async-io,tokio -- --nocapture"
+
+################################################ 
+# 
+# Manual
+# 
+# In server
+# $ sudo vim /etc/ssh/sshd_config
+# PubkeyAcceptedAlgorithms +ssh-dss,ssh-rsa
+# 
+# $ sudo systemctl restart sshd
+# 
+# In local
+# $ SSH_SERVER_HOST=1.1.1.1 SSH_SERVER_PORT=22 SSH_USERNAME=root SSH_PASSWORD=xxxxxx SSH_PRIVATEKEY_PATH=~/.ssh/id_rsa cargo test -p async-ssh2-lite --features _integration_tests,_integration_tests_tokio_ext,async-io,tokio -- --nocapture
+# 
+################################################ 
