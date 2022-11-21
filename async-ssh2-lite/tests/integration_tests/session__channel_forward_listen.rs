@@ -90,14 +90,24 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
                         tokio::task::spawn(async move {
                             let mut buf = vec![0; 128];
                             let mut n_read = 0;
+                            let mut n_retry = 0;
                             loop {
-                                let n = channel.read(&mut buf[n_read..]).await?;
+                                let n = tokio::time::timeout(
+                                    tokio::time::Duration::from_millis(3000),
+                                    channel.read(&mut buf[n_read..]),
+                                )
+                                .await??;
                                 n_read += n;
                                 if n == 0 {
                                     break;
                                 }
                                 // TODO, parse buf
                                 if n_read >= 78 {
+                                    break;
+                                }
+                                n_retry += 1;
+                                if n_retry > 3 {
+                                    eprintln!("Max read attempts reached.");
                                     break;
                                 }
                             }
