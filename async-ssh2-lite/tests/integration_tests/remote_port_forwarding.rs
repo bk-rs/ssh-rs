@@ -1,6 +1,6 @@
 #![cfg(feature = "tokio")]
 
-use std::{error, net::SocketAddr};
+use std::{env, error, net::SocketAddr};
 
 use async_ssh2_lite::{util::ConnectInfo, AsyncSession};
 use futures_util::future::join_all;
@@ -98,7 +98,12 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         if is_internal_test_openssh_server() {
             500
         } else {
-            4000
+            env::var("REMOTE_PORT_FORWARDING_WAIT_SECS")
+                .as_deref()
+                .unwrap_or("4")
+                .parse::<u64>()
+                .unwrap_or(4)
+                * 1000
         },
     ))
     .await;
@@ -127,17 +132,17 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
                     .await?;
                 let mut s = String::new();
                 channel.read_to_string(&mut s).await?;
-                println!("exec curl output:{} i:{}", s, i);
+                println!("remote_port_forwarding exec curl output:{} i:{}", s, i);
                 assert_eq!(s, "200");
                 channel.close().await?;
-                println!("exec curl exit_status:{} i:{}", channel.exit_status()?, i);
+                println!("remote_port_forwarding exec curl exit_status:{} i:{}", channel.exit_status()?, i);
                 Result::<_, Box<dyn error::Error>>::Ok(())
             }
         })
         .collect::<Vec<_>>();
 
     let rets = join_all(futures).await;
-    println!("exec curl rets:{:?}", rets);
+    println!("remote_port_forwarding exec curl rets:{:?}", rets);
     assert!(rets.iter().all(|x| x.is_ok()));
 
     //
