@@ -69,15 +69,12 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         });
 
     //
+    let mut session =
+        AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(ssh_server_connect_addr, None)
+            .await?;
+    __run__session__userauth_pubkey_file(&mut session).await?;
     let forwarding_task: tokio::task::JoinHandle<Result<(), Box<dyn error::Error + Send + Sync>>> =
         tokio::task::spawn(async move {
-            let mut session = AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(
-                ssh_server_connect_addr,
-                None,
-            )
-            .await?;
-            __run__session__userauth_pubkey_file(&mut session).await?;
-
             match session
                 .remote_port_forwarding(
                     remote_port,
@@ -97,7 +94,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         });
 
     //
-    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
     //
     let mut session =
