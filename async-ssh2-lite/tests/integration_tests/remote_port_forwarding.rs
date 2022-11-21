@@ -94,7 +94,14 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         });
 
     //
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(
+        if is_internal_test_openssh_server() {
+            500
+        } else {
+            4000
+        },
+    ))
+    .await;
 
     //
     let mut session =
