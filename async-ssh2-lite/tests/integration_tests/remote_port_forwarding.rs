@@ -29,7 +29,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
 
     let ssh_server_connect_addr = get_connect_addr()?;
 
-    let remote_port = portpicker::pick_unused_port().unwrap();
+    let remote_port = http_server_listen_addr.port() + 1;
 
     //
     let server_task: tokio::task::JoinHandle<Result<(), Box<dyn error::Error + Send + Sync>>> =
@@ -95,6 +95,9 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
 
             Ok(())
         });
+
+    //
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
     //
     let mut session =
