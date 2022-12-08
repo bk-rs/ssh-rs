@@ -61,7 +61,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
             match server.await {
                 Ok(_) => {}
                 Err(err) => {
-                    eprintln!("server error, err:{}", err);
+                    eprintln!("server error, err:{err}");
                 }
             }
 
@@ -86,7 +86,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
             {
                 Ok(_) => {}
                 Err(err) => {
-                    eprintln!("session.remote_port_forwarding error, err:{}", err);
+                    eprintln!("session.remote_port_forwarding error, err:{err}");
                 }
             }
 
@@ -124,25 +124,24 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
                 channel
                     .exec(
                         format!(
-                            r#"curl http://127.0.0.1:{}/200 -H "x-foo: bar" -v -w "%{{http_code}}""#,
-                            remote_port
+                            r#"curl http://127.0.0.1:{remote_port}/200 -H "x-foo: bar" -v -w "%{{http_code}}""#,
                         )
                         .as_ref(),
                     )
                     .await?;
                 let mut s = String::new();
                 channel.read_to_string(&mut s).await?;
-                println!("remote_port_forwarding exec curl output:{} i:{}", s, i);
+                println!("remote_port_forwarding exec curl output:{s} i:{i}");
                 assert_eq!(s, "200");
                 channel.close().await?;
-                println!("remote_port_forwarding exec curl exit_status:{} i:{}", channel.exit_status()?, i);
+                println!("remote_port_forwarding exec curl exit_status:{} i:{i}", channel.exit_status()?);
                 Result::<_, Box<dyn error::Error>>::Ok(())
             }
         })
         .collect::<Vec<_>>();
 
     let rets = join_all(futures).await;
-    println!("remote_port_forwarding exec curl rets:{:?}", rets);
+    println!("remote_port_forwarding exec curl rets:{rets:?}");
     assert!(rets.iter().all(|x| x.is_ok()));
 
     //

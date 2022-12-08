@@ -535,12 +535,12 @@ where
                             match join_handle.await {
                                 Ok(_) => {}
                                 Err(err) => {
-                                    eprintln!("join_handle failed, err:{:?}", err);
+                                    eprintln!("join_handle failed, err:{err:?}");
                                 }
                             }
                         }
                         Err(err) => {
-                            eprintln!("listener.accept failed, err:{:?}", err);
+                            eprintln!("listener.accept failed, err:{err:?}");
                         }
                     }
                 }
@@ -604,12 +604,12 @@ where
                             match join_handle.await {
                                 Ok(_) => {}
                                 Err(err) => {
-                                    eprintln!("join_handle failed, err:{:?}", err);
+                                    eprintln!("join_handle failed, err:{err:?}");
                                 }
                             }
                         }
                         Err(err) => {
-                            eprintln!("listener.accept failed, err:{:?}", err);
+                            eprintln!("listener.accept failed, err:{err:?}");
                         }
                     }
                 }

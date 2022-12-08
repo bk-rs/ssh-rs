@@ -76,11 +76,8 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
         };
     };
 
-    println!("run `netstat -tunlp | grep {}` in ssh server", remote_port);
-    println!(
-        "run `curl http://127.0.0.1:{}/ -v` in ssh server",
-        remote_port
-    );
+    println!("run `netstat -tunlp | grep {remote_port}` in ssh server");
+    println!("run `curl http://127.0.0.1:{remote_port}/ -v` in ssh server");
 
     //
     let server_task: tokio::task::JoinHandle<Result<(), Box<dyn error::Error + Send + Sync>>> =
@@ -130,7 +127,7 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
                         });
                     }
                     Err(err) => {
-                        eprintln!("listener.accept failed, err:{:?}", err);
+                        eprintln!("listener.accept failed, err:{err:?}");
                     }
                 }
             }
@@ -146,22 +143,18 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
                 let mut channel = session.channel_session().await?;
                 channel
                     .exec(
-                        format!(
-                            r#"curl http://127.0.0.1:{}/ -v -w "%{{http_code}}""#,
-                            remote_port
-                        )
-                        .as_ref(),
+                        format!(r#"curl http://127.0.0.1:{remote_port}/ -v -w "%{{http_code}}""#,)
+                            .as_ref(),
                     )
                     .await?;
                 let mut s = String::new();
                 channel.read_to_string(&mut s).await?;
-                println!("channel_forward_listen exec curl output:{} i:{}", s, i);
+                println!("channel_forward_listen exec curl output:{s} i:{i}");
                 assert_eq!(s, "200");
                 channel.close().await?;
                 println!(
-                    "channel_forward_listen exec curl exit_status:{} i:{}",
-                    channel.exit_status()?,
-                    i
+                    "channel_forward_listen exec curl exit_status:{} i:{i}",
+                    channel.exit_status()?
                 );
                 Result::<_, Box<dyn error::Error>>::Ok(())
             }
@@ -169,7 +162,7 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
         .collect::<Vec<_>>();
 
     let rets = join_all(futures).await;
-    println!("channel_forward_listen exec curl rets:{:?}", rets);
+    println!("channel_forward_listen exec curl rets:{rets:?}");
     assert!(rets.iter().all(|x| x.is_ok()));
 
     //

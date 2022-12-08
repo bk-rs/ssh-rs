@@ -1,4 +1,3 @@
-use core::fmt;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use ssh2::Error as Ssh2Error;
@@ -11,9 +10,9 @@ pub enum Error {
     Other(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{self:?}")
     }
 }
 impl std::error::Error for Error {}

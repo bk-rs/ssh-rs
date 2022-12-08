@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }))
         });
 
-    println!("ret_vec: {:?}", ret_vec);
+    println!("ret_vec:{ret_vec:?}");
 
     Ok(())
 }
@@ -99,9 +99,9 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
         channel.exec("hostname").await?;
         let mut s = String::new();
         channel.read_to_string(&mut s).await?;
-        println!("bastion hostname: {}", s);
+        println!("bastion hostname:{s}");
         channel.close().await?;
-        println!("bastion channel exit_status: {}", channel.exit_status()?);
+        println!("bastion channel exit_status:{}", channel.exit_status()?);
 
         let mut bastion_channel = bastion_session
             .channel_direct_tcpip(addr.ip().to_string().as_ref(), addr.port(), None)
@@ -142,14 +142,14 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
                             break
                         },
                         Ok(n) => {
-                            println!("forward_stream_r read {}", n);
+                            println!("forward_stream_r read {n}");
                             bastion_channel.write(&buf_forward_stream_r[..n]).await.map(|_| ()).map_err(|err| {
-                                eprintln!("bastion_channel write failed, err {:?}", err);
+                                eprintln!("bastion_channel write failed, err:{err:?}");
                                 err
                             })?
                         },
                         Err(err) =>  {
-                            eprintln!("forward_stream_r read failed, err {:?}", err);
+                            eprintln!("forward_stream_r read failed, err:{err:?}");
 
                             return Err(err);
                         }
@@ -160,14 +160,14 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
                             break
                         },
                         Ok(n) => {
-                            println!("bastion_channel read {}", n);
+                            println!("bastion_channel read {n}");
                             forward_stream_r.write(&buf_bastion_channel[..n]).await.map(|_| ()).map_err(|err| {
-                                eprintln!("forward_stream_r write failed, err {:?}", err);
+                                eprintln!("forward_stream_r write failed, err:{err:?}");
                                 err
                             })?
                         },
                         Err(err) => {
-                            eprintln!("bastion_channel read failed, err {:?}", err);
+                            eprintln!("bastion_channel read failed, err:{err:?}");
 
                             return Err(err);
                         }
@@ -201,9 +201,9 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
         channel.exec("hostname").await?;
         let mut s = String::new();
         channel.read_to_string(&mut s).await?;
-        println!("hostname: {}", s);
+        println!("hostname:{s}");
         channel.close().await?;
-        println!("channel exit_status: {}", channel.exit_status()?);
+        println!("channel exit_status:{}", channel.exit_status()?);
 
         session.disconnect(None, "foo", None).await?;
 
@@ -214,14 +214,14 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
 
     //
     task_with_main.await.map_err(|err| {
-        eprintln!("task_with_main run failed, err {:?}", err);
+        eprintln!("task_with_main run failed, err:{err:?}");
 
         err
     })?;
 
     for receiver in receivers {
         let msg = receiver.recv().await.unwrap();
-        println!("{}", msg);
+        println!("{msg}");
     }
 
     Ok(())

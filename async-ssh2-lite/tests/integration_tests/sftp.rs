@@ -45,11 +45,11 @@ async fn __run__session__sftp<S: AsyncSessionStream + Send + Sync + 'static>(
     sftp.create(&remote_path).await?;
 
     let file_stat = sftp.stat(&remote_path).await?;
-    println!("sftp file_stat:{:?}", file_stat);
+    println!("sftp file_stat:{file_stat:?}");
 
     let mut sftp_file = sftp.open(&remote_path).await?;
     let file_stat_for_file = sftp_file.stat().await?;
-    println!("sftp file_stat_for_file:{:?}", file_stat_for_file);
+    println!("sftp file_stat_for_file:{file_stat_for_file:?}");
     sftp_file.close().await?;
     assert_eq!(file_stat, file_stat_for_file);
 
@@ -57,7 +57,7 @@ async fn __run__session__sftp<S: AsyncSessionStream + Send + Sync + 'static>(
 
     let list = sftp.readdir(&PathBuf::from("/")).await?;
     for (file_path, file_stat) in list.iter().take(10) {
-        println!("sftp file_path:{:?} file_stat:{:?}", file_path, file_stat);
+        println!("sftp file_path:{file_path:?} file_stat:{file_stat:?}");
     }
 
     Ok(())

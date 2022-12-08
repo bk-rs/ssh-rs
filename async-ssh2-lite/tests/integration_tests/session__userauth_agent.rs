@@ -62,7 +62,7 @@ async fn __run__session__userauth_agent_with_try_next<
                 assert!(session.authenticated());
             }
             Err(err) => {
-                eprintln!("session.userauth_agent_with_try_next failed, err:{}", err);
+                eprintln!("session.userauth_agent_with_try_next failed, err:{err}");
                 assert!(!session.authenticated());
             }
         }
@@ -82,7 +82,7 @@ async fn __run__session__userauth_agent<S: AsyncSessionStream + Send + Sync + 's
                 assert!(session.authenticated());
             }
             Err(err) => {
-                eprintln!("session.userauth_agent failed, err:{}", err);
+                eprintln!("session.userauth_agent failed, err:{err}");
                 assert!(!session.authenticated());
             }
         }
@@ -92,7 +92,7 @@ async fn __run__session__userauth_agent<S: AsyncSessionStream + Send + Sync + 's
                 assert!(session.authenticated());
             }
             Err(err) => {
-                eprintln!("session.userauth_agent failed, err:{}", err);
+                eprintln!("session.userauth_agent failed, err:{err}");
                 assert!(!session.authenticated());
             }
         }

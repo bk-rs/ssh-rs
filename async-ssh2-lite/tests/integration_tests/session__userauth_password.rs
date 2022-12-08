@@ -37,7 +37,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         .collect::<Vec<_>>();
 
     let rets = join_all(futures).await;
-    println!("__run__session__userauth_password rets:{:?}", rets);
+    println!("__run__session__userauth_password rets:{rets:?}");
     assert!(rets.iter().all(|x| x.is_ok()));
 
     Ok(())
@@ -69,7 +69,7 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
             .collect::<Vec<_>>();
 
         let rets = join_all(futures).await;
-        println!("__run__session__userauth_password rets:{:?}", rets);
+        println!("__run__session__userauth_password rets:{rets:?}");
         assert!(rets.iter().all(|x| x.is_ok()));
 
         Ok(())
@@ -82,8 +82,7 @@ async fn __run__session__userauth_password<S: AsyncSessionStream + Send + Sync +
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
     println!(
-        "handshake successful, i:{} thread_id:{:?}",
-        i,
+        "handshake successful, i:{i} thread_id:{:?}",
         thread::current().id()
     );
 
@@ -115,8 +114,7 @@ async fn __run__session__userauth_password<S: AsyncSessionStream + Send + Sync +
         }
     }
     println!(
-        "session.userauth_password successful, i:{} thread_id:{:?}",
-        i,
+        "session.userauth_password successful, i:{i} thread_id:{:?}",
         thread::current().id()
     );
 
