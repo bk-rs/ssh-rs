@@ -17,4 +17,3 @@ easy-parallel = "3.1"
 async-channel = "1.5"
 tempfile = "3.1"
 cfg-if = "1.0"
-uuid = { version = "0.8", features = ["v4"] }
