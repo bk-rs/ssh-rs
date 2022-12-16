@@ -29,3 +29,14 @@ impl ConnectInfo {
         Self::Unix(path.as_ref().into())
     }
 }
+
+#[cfg(windows)]
+pub struct RawSocketWrapper(pub std::os::windows::io::RawSocket);
+
+#[cfg(windows)]
+impl std::os::windows::io::AsRawSocket for RawSocketWrapper {
+    #[inline]
+    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
+        self.0
+    }
+}

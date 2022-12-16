@@ -62,7 +62,7 @@ where
         configuration: impl Into<Option<SessionConfiguration>>,
     ) -> Result<Self, Error> {
         let mut session = get_session(configuration)?;
-        session.set_tcp_stream(stream.as_raw_socket());
+        session.set_tcp_stream(crate::util::RawSocketWrapper(stream.as_raw_socket()));
 
         let stream = Arc::new(stream);
 

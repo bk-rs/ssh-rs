@@ -44,7 +44,7 @@ where
 {
     pub fn new(stream: S) -> Result<Self, Error> {
         let mut session = get_session(None)?;
-        session.set_tcp_stream(stream.as_raw_socket());
+        session.set_tcp_stream(crate::util::RawSocketWrapper(stream.as_raw_socket()));
 
         let stream = Arc::new(stream);
 
