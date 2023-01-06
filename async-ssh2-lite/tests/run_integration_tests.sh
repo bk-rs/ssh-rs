@@ -2,7 +2,7 @@
 
 set -ex
 
-version="${1:-8.8_p1-r1-ls82}"
+version="${1:-version-9.0_p1-r2}"
 
 # RUST_BACKTRACE=full ./tests/run_integration_tests.sh
 # RUST_LOG=trace ./tests/run_integration_tests.sh
