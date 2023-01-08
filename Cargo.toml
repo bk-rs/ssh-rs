@@ -1,5 +1,9 @@
 [workspace]
 members = [
+    # 
     "async-ssh2-lite",
     "async-ssh2-lite/demos/*",
+    # 
+    "bb8-async-ssh2-lite",
+    "bb8-async-ssh2-lite/demo"
 ]

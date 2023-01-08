@@ -1,0 +1,14 @@
+[package]
+name = "bb8-async-ssh2-lite-demo"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bb8_asl_demo_tokio_tcp_stream"
+path = "src/tokio_tcp_stream.rs"
+
+[dependencies]
+bb8-async-ssh2-lite = { path = "..", features = ["tokio"] }
+
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+futures-util = { version = "0.3" }
