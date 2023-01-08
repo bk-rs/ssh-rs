@@ -1,7 +1,16 @@
 [package]
 name = "bb8-async-ssh2-lite"
 version = "0.1.0"
+authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2021"
+description = "Asynchronous ssh2 connection pool."
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/bk-rs/ssh-rs"
+homepage = "https://github.com/bk-rs/ssh-rs"
+documentation = "https://docs.rs/bb8-async-ssh2-lite"
+keywords = ["SSH", "SSH2"]
+categories = []
+readme = "README.md"
 
 [features]
 default = ["tokio"]
