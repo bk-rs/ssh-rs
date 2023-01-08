@@ -1,5 +1,5 @@
 /*
-RUST_BACKTRACE=1 RUST_LOG=trace cargo run -p bb8-async-ssh2-lite-demo --bin bb8_asl_demo_tokio_tcp_stream -- 127.0.0.1:22 root
+RUST_BACKTRACE=1 RUST_LOG=trace cargo run -p bb8-async-ssh2-lite-demo --bin bb8_asl_demo_tokio_tcp_stream -- 127.0.0.1:22 root '~/.ssh/id_rsa'
 */
 
 use std::env;
@@ -11,12 +11,17 @@ use futures_util::{future::join_all, AsyncReadExt as _};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let socket_addr = env::args().nth(1).ok_or("socket_addr missing")?.parse()?;
     let username = env::args().nth(2).ok_or("username missing")?;
+    let privatekey = env::args().nth(3).ok_or("privatekey missing")?.parse()?;
 
     let mgr = AsyncSessionManagerWithTokioTcpStream::new(
         socket_addr,
         None,
         username,
-        AsyncSessionUserauthType::Agent,
+        AsyncSessionUserauthType::PubkeyFile {
+            pubkey: None,
+            privatekey,
+            passphrase: None,
+        },
     );
 
     let pool = bb8::Pool::builder().build(mgr).await?;

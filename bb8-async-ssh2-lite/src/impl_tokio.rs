@@ -22,7 +22,7 @@ impl AsyncSessionManagerWithTokioTcpStream {
         userauth_type: AsyncSessionUserauthType,
     ) -> Self {
         Self {
-            socket_addr: socket_addr.into(),
+            socket_addr,
             configuration: configuration.into(),
             username: username.as_ref().into(),
             userauth_type,
@@ -79,7 +79,7 @@ impl bb8::ManageConnection for AsyncSessionManagerWithTokioTcpStream {
             }
         }
 
-        if session.authenticated() {
+        if !session.authenticated() {
             return Err(AsyncSessionManagerError::AssertAuthenticated);
         }
 
