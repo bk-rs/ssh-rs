@@ -45,17 +45,23 @@ async fn __run__session__channel_session__exec<S: AsyncSessionStream + Send + Sy
     channel.exec("hostname").await?;
     let mut s = String::new();
     channel.read_to_string(&mut s).await?;
-    println!("exec hostname output:{s}");
+    println!("channel__exec exec hostname output:{s}");
     channel.close().await?;
-    println!("exec hostname exit_status:{}", channel.exit_status()?);
+    println!(
+        "channel__exec exec hostname exit_status:{}",
+        channel.exit_status()?
+    );
 
     let mut channel = session.channel_session().await?;
     channel.exec("date").await?;
     let mut s = String::new();
     channel.read_to_string(&mut s).await?;
-    println!("exec date output:{s}");
+    println!("channel__exec exec date output:{s}");
     channel.close().await?;
-    println!("exec date exit_status:{}", channel.exit_status()?);
+    println!(
+        "channel__exec exec date exit_status:{}",
+        channel.exit_status()?
+    );
 
     let mut channel = session.channel_session().await?;
     channel.exec("head -c 16354 /dev/random").await?;
@@ -63,7 +69,10 @@ async fn __run__session__channel_session__exec<S: AsyncSessionStream + Send + Sy
     channel.read_to_end(&mut b).await?;
     assert_eq!(b.len(), 16354);
     channel.close().await?;
-    println!("exec head exit_status:{}", channel.exit_status()?);
+    println!(
+        "channel__exec exec head exit_status:{}",
+        channel.exit_status()?
+    );
 
     Ok(())
 }

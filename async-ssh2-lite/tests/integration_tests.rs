@@ -31,4 +31,7 @@ mod integration_tests {
 
     #[cfg(test)]
     mod sftp;
+
+    #[cfg(test)]
+    mod tokio_spawn_session;
 }
