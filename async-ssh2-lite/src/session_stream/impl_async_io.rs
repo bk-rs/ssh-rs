@@ -36,9 +36,7 @@ where
             }
 
             match sess.block_directions() {
-                BlockDirections::None => {
-                    unreachable!("")
-                }
+                BlockDirections::None => continue,
                 BlockDirections::Inbound => {
                     assert!(expected_block_directions.is_readable());
 
@@ -80,9 +78,7 @@ where
         }
 
         match sess.block_directions() {
-            BlockDirections::None => {
-                unreachable!("")
-            }
+            BlockDirections::None => return Poll::Pending,
             BlockDirections::Inbound => {
                 assert!(expected_block_directions.is_readable());
 
