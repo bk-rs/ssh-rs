@@ -19,6 +19,7 @@ listen_port=$(comm -23 <(seq $LOWERPORT $UPPERPORT | sort) <(ss -Htan | awk '{pr
 export IS_INTERNAL_TEST_OPENSSH_SERVER="1"
 export SSH_SERVER_HOST="127.0.0.1"
 export SSH_SERVER_PORT="${listen_port}"
+export SSH_SERVER_HOST_AND_PORT="127.0.0.1:${listen_port}"
 export SSH_USERNAME="linuxserver.io"
 export SSH_PASSWORD="password"
 
