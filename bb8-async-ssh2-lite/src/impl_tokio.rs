@@ -228,7 +228,9 @@ mod tests {
         for _ in 0..3 {
             for _ in 0..8 {
                 let mgr = mgr.clone();
-                let handle = tokio::spawn(async move { mgr.connect().await });
+                let handle = tokio::spawn(async move {
+                    tokio::time::timeout(tokio::time::Duration::from_secs(5), mgr.connect()).await
+                });
                 handles.push(handle);
             }
             tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
