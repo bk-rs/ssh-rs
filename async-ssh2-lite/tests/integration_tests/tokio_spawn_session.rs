@@ -22,14 +22,23 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let session = Arc::new(session);
 
     let mut handles = vec![];
-    for i in 0..10 {
+    /*
+    if `for i in 0..12 {` Maybe
+    Ssh2(Error { code: Session(-21), msg: "Channel open failure (connect failed)" })
+    */
+    for i in 0..9 {
         let session = session.clone();
         let handle = tokio::spawn(async move {
             match __run__session__channel_session__exec(&session, i).await {
-                Ok(_) => Ok(()),
+                Ok(_) => {
+                    println!(
+                        "tokio_spawn_session simple_with_tokio __run__session__channel_session__exec i:{i} done"
+                    );
+                    Ok(())
+                }
                 Err(err) => {
                     eprintln!(
-                        "tokio_spawn_session simple_with_tokio __run__session__channel_session__exec err:{err}"
+                        "tokio_spawn_session simple_with_tokio __run__session__channel_session__exec i:{i} err:{err}"
                     );
                     Err(err.to_string())
                 }
@@ -38,9 +47,12 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
         handles.push(handle);
     }
 
+    let mut rets = vec![];
     for handle in handles {
-        assert!(handle.await.is_ok());
+        rets.push(handle.await);
     }
+    println!("tokio_spawn_session simple_with_tokio rets:{rets:?}");
+    assert!(rets.iter().all(|x| x.as_ref().ok().unwrap().is_ok()));
 
     Ok(())
 }
@@ -62,10 +74,15 @@ async fn concurrently_with_tokio() -> Result<(), Box<dyn error::Error>> {
         let session = session.clone();
         let handle = tokio::spawn(async move {
             match __run__session__channel_session__exec(&session, i).await {
-                Ok(_) => Ok(()),
+                Ok(_) => {
+                    println!(
+                        "tokio_spawn_session concurrently_with_tokio __run__session__channel_session__exec i:{i} done"
+                    );
+                    Ok(())
+                }
                 Err(err) => {
                     eprintln!(
-                        "tokio_spawn_session concurrently_with_tokio __run__session__channel_session__exec err:{err}"
+                        "tokio_spawn_session concurrently_with_tokio __run__session__channel_session__exec i:{i} err:{err}"
                     );
                     Err(err.to_string())
                 }
