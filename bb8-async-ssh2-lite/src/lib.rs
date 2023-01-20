@@ -28,6 +28,7 @@ pub enum AsyncSessionManagerError {
     HandshakeError(async_ssh2_lite::Error),
     UserauthError(async_ssh2_lite::Error),
     AssertAuthenticated,
+    Unknown(String),
 }
 impl core::fmt::Display for AsyncSessionManagerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
