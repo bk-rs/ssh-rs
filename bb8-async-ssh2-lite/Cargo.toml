@@ -23,7 +23,7 @@ async-ssh2-lite = { version = "0.4", default-features = false, path = "../async-
 bb8 = { version = "0.8", default-features = false }
 async-trait = { version = "0.1", default-features = false }
 
-tokio_crate = { version = "1", default-features = false, features = ["time"], optional = true, package = "tokio" }
+tokio_crate = { version = "1", default-features = false, features = ["sync"], optional = true, package = "tokio" }
 
 [dev-dependencies]
 tokio_crate = { version = "1", features = ["macros", "rt-multi-thread", "net"], package = "tokio" }

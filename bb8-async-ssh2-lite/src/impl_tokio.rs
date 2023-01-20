@@ -1,12 +1,9 @@
-use core::{
-    cmp::max,
-    sync::atomic::{AtomicIsize, Ordering},
-};
+use core::cmp::max;
 use std::net::SocketAddr;
 
 use async_ssh2_lite::{AsyncSession, SessionConfiguration, TokioTcpStream};
 use async_trait::async_trait;
-use tokio_crate as tokio;
+use tokio_crate::sync::Semaphore;
 
 use crate::{AsyncSessionManagerError, AsyncSessionUserauthType};
 
@@ -19,7 +16,7 @@ pub struct AsyncSessionManagerWithTokioTcpStream {
     pub username: String,
     pub userauth_type: AsyncSessionUserauthType,
     //
-    pub max_number_of_unauthenticated_conns: Option<AtomicIsize>,
+    max_number_of_unauthenticated_conns: Option<Semaphore>,
 }
 
 impl Clone for AsyncSessionManagerWithTokioTcpStream {
@@ -34,7 +31,7 @@ impl Clone for AsyncSessionManagerWithTokioTcpStream {
                 .max_number_of_unauthenticated_conns
                 .as_ref()
                 .map(|max_number_of_unauthenticated_conns| {
-                    AtomicIsize::new(max_number_of_unauthenticated_conns.load(Ordering::SeqCst))
+                    Semaphore::new(max_number_of_unauthenticated_conns.available_permits())
                 }),
         }
     }
@@ -61,10 +58,14 @@ impl AsyncSessionManagerWithTokioTcpStream {
         &mut self,
         max_number_of_unauthenticated_conns: usize,
     ) {
-        self.max_number_of_unauthenticated_conns = Some(AtomicIsize::new(max(
-            1,
-            max_number_of_unauthenticated_conns,
-        ) as isize));
+        self.max_number_of_unauthenticated_conns =
+            Some(Semaphore::new(max(1, max_number_of_unauthenticated_conns)));
+    }
+
+    pub fn get_max_number_of_unauthenticated_conns(&self) -> Option<usize> {
+        self.max_number_of_unauthenticated_conns
+            .as_ref()
+            .map(|x| x.available_permits())
     }
 }
 
@@ -75,24 +76,15 @@ impl bb8::ManageConnection for AsyncSessionManagerWithTokioTcpStream {
     type Error = AsyncSessionManagerError;
 
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        if let Some(max_number_of_unauthenticated_conns) =
-            self.max_number_of_unauthenticated_conns.as_ref()
-        {
-            loop {
-                if max_number_of_unauthenticated_conns.load(Ordering::SeqCst) > 0 {
-                    break;
-                } else {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-                }
-            }
-        }
-
-        //
-        self.max_number_of_unauthenticated_conns.as_ref().map(
-            |max_number_of_unauthenticated_conns| {
-                max_number_of_unauthenticated_conns.fetch_sub(1, Ordering::SeqCst)
-            },
-        );
+        let semaphore_permit = if let Some(x) = self.max_number_of_unauthenticated_conns.as_ref() {
+            Some(
+                x.acquire()
+                    .await
+                    .map_err(|err| AsyncSessionManagerError::Unknown(err.to_string()))?,
+            )
+        } else {
+            None
+        };
 
         //
         match connect_inner(
@@ -104,20 +96,12 @@ impl bb8::ManageConnection for AsyncSessionManagerWithTokioTcpStream {
         .await
         {
             Ok(session) => {
-                self.max_number_of_unauthenticated_conns.as_ref().map(
-                    |max_number_of_unauthenticated_conns| {
-                        max_number_of_unauthenticated_conns.fetch_add(1, Ordering::SeqCst)
-                    },
-                );
+                drop(semaphore_permit);
 
                 Ok(session)
             }
             Err(err) => {
-                self.max_number_of_unauthenticated_conns.as_ref().map(
-                    |max_number_of_unauthenticated_conns| {
-                        max_number_of_unauthenticated_conns.fetch_add(1, Ordering::SeqCst)
-                    },
-                );
+                drop(semaphore_permit);
 
                 Err(err)
             }
@@ -213,7 +197,7 @@ mod tests {
             }
         };
 
-        let max_number_of_unauthenticated_conns: usize = 4;
+        let max_number_of_unauthenticated_conns = 4;
 
         let mut mgr = AsyncSessionManagerWithTokioTcpStream::new(
             addr,
@@ -231,7 +215,7 @@ mod tests {
                 loop {
                     println!(
                         "max_number_of_unauthenticated_conns:{:?}",
-                        mgr.max_number_of_unauthenticated_conns.as_ref()
+                        mgr.get_max_number_of_unauthenticated_conns()
                     );
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 }
@@ -252,15 +236,13 @@ mod tests {
         join_all(handles).await;
 
         assert_eq!(
-            mgr.max_number_of_unauthenticated_conns
-                .as_ref()
-                .map(|x| x.load(Ordering::SeqCst)),
-            Some(max_number_of_unauthenticated_conns as isize)
+            mgr.get_max_number_of_unauthenticated_conns(),
+            Some(max_number_of_unauthenticated_conns)
         );
 
         let elapsed_dur = now.elapsed();
         println!("elapsed_dur:{elapsed_dur:?}",);
-        assert!(elapsed_dur.as_millis() >= (300 * 3 + 100 * 4));
+        assert!(elapsed_dur.as_millis() >= 300 * 3);
 
         Ok(())
     }
