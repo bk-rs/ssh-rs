@@ -22,7 +22,7 @@ pub struct AsyncSessionManagerWithTokioTcpStream {
 impl Clone for AsyncSessionManagerWithTokioTcpStream {
     fn clone(&self) -> Self {
         Self {
-            socket_addr: self.socket_addr.clone(),
+            socket_addr: self.socket_addr,
             configuration: self.configuration.clone(),
             username: self.username.clone(),
             userauth_type: self.userauth_type.clone(),
@@ -181,7 +181,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_max_number_of_unauthenticated_conns() -> Result<(), Box<dyn std::error::Error>> {
-        let host = env::var("SSH_SERVER_HOST_AND_PORT").unwrap_or("google.com:443".into());
+        let host = env::var("SSH_SERVER_HOST_AND_PORT").unwrap_or_else(|_| "google.com:443".into());
 
         let addr = match tokio::net::lookup_host(host).await {
             Ok(mut addrs) => match addrs.next() {
@@ -202,7 +202,7 @@ mod tests {
         let mut mgr = AsyncSessionManagerWithTokioTcpStream::new(
             addr,
             None,
-            env::var("USER").unwrap_or("root".into()),
+            env::var("USER").unwrap_or_else(|_| "root".into()),
             AsyncSessionUserauthType::Agent,
         );
         mgr.set_max_number_of_unauthenticated_conns(max_number_of_unauthenticated_conns);
