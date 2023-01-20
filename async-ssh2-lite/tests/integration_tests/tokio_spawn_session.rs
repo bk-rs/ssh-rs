@@ -13,6 +13,12 @@ use super::{
     helpers::get_connect_addr, session__userauth_pubkey::__run__session__userauth_pubkey_file,
 };
 
+/*
+tokio 1 thread, one by one channel_session and close => no limit
+tokio 1 thread, spawn channel_session => limit by MaxSessions
+tokio n threads, spawn channel_session => not support
+*/
+
 //
 #[tokio::test]
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
