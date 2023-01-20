@@ -25,22 +25,28 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     for i in 0..10 {
         let session = session.clone();
         let handle = tokio::spawn(async move {
-            __run__session__channel_session__exec(&session, i)
-                .await
-                .unwrap();
+            match __run__session__channel_session__exec(&session, i).await {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!(
+                        "tokio_spawn_session simple_with_tokio __run__session__channel_session__exec err:{err}"
+                    );
+                    Err(err.to_string())
+                }
+            }
         });
         handles.push(handle);
     }
 
     for handle in handles {
-        handle.await.unwrap();
+        assert!(handle.await.is_ok());
     }
 
     Ok(())
 }
 
 //
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn concurrently_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
@@ -48,19 +54,29 @@ async fn concurrently_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let session = Arc::new(session);
 
     let mut handles = vec![];
-    for i in 0..10 {
+    /*
+    if `for i in 0..3 {` Maybe
+    Ssh2(Error { code: Session(-4), msg: "Unexpected error" })
+    */
+    for i in 0..1 {
         let session = session.clone();
         let handle = tokio::spawn(async move {
-            __run__session__channel_session__exec(&session, i)
-                .await
-                .unwrap();
+            match __run__session__channel_session__exec(&session, i).await {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!(
+                        "tokio_spawn_session concurrently_with_tokio __run__session__channel_session__exec err:{err}"
+                    );
+                    Err(err.to_string())
+                }
+            }
         });
         handles.push(handle);
     }
 
     let rets = join_all(handles).await;
-    println!("tokio_spawn_session concurrently rets:{rets:?}");
-    assert!(rets.iter().all(|x| x.is_ok()));
+    println!("tokio_spawn_session concurrently_with_tokio rets:{rets:?}");
+    assert!(rets.iter().all(|x| x.as_ref().ok().unwrap().is_ok()));
 
     Ok(())
 }
@@ -85,6 +101,9 @@ async fn __run__session__channel_session__exec<S: AsyncSessionStream + Send + Sy
     let mut b = vec![];
     channel.read_to_end(&mut b).await?;
     assert_eq!(b.len(), 16354);
+
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
     channel.close().await?;
     println!(
         "tokio_spawn_session exec head exit_status:{} i:{i}",

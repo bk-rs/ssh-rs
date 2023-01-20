@@ -15,7 +15,7 @@ Maybe LIBSSH2_ERROR_SOCKET_DISCONNECT , should change MaxStartups and MaxSession
 
 //
 #[cfg(feature = "tokio")]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     init_logger();
 
@@ -26,7 +26,6 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     };
 
     let futures = (1..=times)
-        .into_iter()
         .map(|i| async move {
             let mut session =
                 AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None)
@@ -56,7 +55,6 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
         };
 
         let futures = (1..=times)
-            .into_iter()
             .map(|i| async move {
                 let mut session = AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(
                     get_connect_addr()?,

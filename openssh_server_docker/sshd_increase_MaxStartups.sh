@@ -2,4 +2,4 @@
 
 set -ex
 
-sed -i -E "s/^[#]?MaxStartups[\t ].*/MaxStartups\t30:10:60/" /etc/ssh/sshd_config
+sed -i -E "s/^[#]?MaxStartups[\t ].*/MaxStartups\t1000/" /etc/ssh/sshd_config

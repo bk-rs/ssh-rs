@@ -14,7 +14,7 @@ use super::{
     session__userauth_pubkey::__run__session__userauth_pubkey_file,
 };
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 10)]
 async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let http_server_listen_addr = get_listen_addr();
     let http_server_listen_addr_for_server = http_server_listen_addr;
@@ -109,17 +109,14 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     .await;
 
     //
-    let mut session =
-        AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(ssh_server_connect_addr, None)
-            .await?;
-    __run__session__userauth_pubkey_file(&mut session).await?;
 
     let futures = (1..=10)
-        .into_iter()
         .map(|i| {
-            let session = session.clone();
-
             async move {
+                let mut session = AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(ssh_server_connect_addr, None)
+                .await?;
+                __run__session__userauth_pubkey_file(&mut session).await?;
+
                 let mut channel = session.channel_session().await?;
                 channel
                     .exec(
