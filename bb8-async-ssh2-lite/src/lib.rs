@@ -4,10 +4,10 @@ pub use bb8;
 #[cfg(feature = "tokio")]
 mod impl_tokio;
 #[cfg(feature = "tokio")]
-pub use impl_tokio::AsyncSessionManagerWithTokioTcpStream;
+pub use impl_tokio::{AsyncSessionManagerWithTokioTcpStream, AsyncSftpManagerWithTokioTcpStream};
 
-use std::path::PathBuf;
-
+//
+//
 //
 #[derive(Debug, Clone)]
 pub enum AsyncSessionUserauthType {
@@ -16,12 +16,15 @@ pub enum AsyncSessionUserauthType {
     },
     Agent,
     PubkeyFile {
-        pubkey: Option<PathBuf>,
-        privatekey: PathBuf,
+        pubkey: Option<std::path::PathBuf>,
+        privatekey: std::path::PathBuf,
         passphrase: Option<String>,
     },
 }
 
+//
+//
+//
 #[derive(Debug)]
 pub enum AsyncSessionManagerError {
     ConnectError(async_ssh2_lite::Error),
@@ -36,3 +39,18 @@ impl core::fmt::Display for AsyncSessionManagerError {
     }
 }
 impl std::error::Error for AsyncSessionManagerError {}
+
+//
+//
+//
+#[derive(Debug)]
+pub enum AsyncSftpManagerError {
+    AsyncSessionManagerError(AsyncSessionManagerError),
+    OpenError(async_ssh2_lite::Error),
+}
+impl core::fmt::Display for AsyncSftpManagerError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+impl std::error::Error for AsyncSftpManagerError {}

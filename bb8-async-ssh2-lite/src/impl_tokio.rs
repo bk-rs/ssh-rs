@@ -1,12 +1,14 @@
 use core::cmp::max;
 use std::net::SocketAddr;
 
-use async_ssh2_lite::{AsyncSession, SessionConfiguration, TokioTcpStream};
+use async_ssh2_lite::{AsyncSession, AsyncSftp, SessionConfiguration, TokioTcpStream};
 use async_trait::async_trait;
 use tokio_crate::sync::Semaphore;
 
-use crate::{AsyncSessionManagerError, AsyncSessionUserauthType};
+use crate::{AsyncSessionManagerError, AsyncSessionUserauthType, AsyncSftpManagerError};
 
+//
+//
 //
 #[derive(Debug)]
 #[non_exhaustive]
@@ -117,6 +119,50 @@ impl bb8::ManageConnection for AsyncSessionManagerWithTokioTcpStream {
     }
 }
 
+//
+//
+//
+#[derive(Debug, Clone)]
+pub struct AsyncSftpManagerWithTokioTcpStream(pub AsyncSessionManagerWithTokioTcpStream);
+
+#[async_trait]
+impl bb8::ManageConnection for AsyncSftpManagerWithTokioTcpStream {
+    type Connection = AsyncSftp<TokioTcpStream>;
+
+    type Error = AsyncSftpManagerError;
+
+    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
+        let session = self
+            .0
+            .connect()
+            .await
+            .map_err(AsyncSftpManagerError::AsyncSessionManagerError)?;
+
+        let sftp = session
+            .sftp()
+            .await
+            .map_err(AsyncSftpManagerError::OpenError)?;
+
+        Ok(sftp)
+    }
+
+    async fn is_valid(&self, _conn: &mut Self::Connection) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn has_broken(&self, _conn: &mut Self::Connection) -> bool {
+        false
+    }
+}
+
+/*
+Without AsyncChannelManagerWithTokioTcpStream, because
+Ssh2(Error { code: Session(-39), msg: "Channel can not be reused" })
+*/
+
+//
+//
+//
 async fn connect_inner(
     socket_addr: SocketAddr,
     configuration: Option<SessionConfiguration>,
