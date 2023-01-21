@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let username = env::args().nth(2).ok_or("username missing")?;
     let privatekey = env::args().nth(3).ok_or("privatekey missing")?.parse()?;
 
-    let mgr = AsyncSessionManagerWithTokioTcpStream::new(
+    let mut mgr = AsyncSessionManagerWithTokioTcpStream::new(
         socket_addr,
         None,
         username,
@@ -23,11 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             passphrase: None,
         },
     );
+    mgr.set_max_number_of_unauthenticated_conns(10);
 
-    let pool = bb8::Pool::builder().build(mgr).await?;
+    let pool = bb8::Pool::builder().max_size(30).build(mgr).await?;
 
     let mut handles = vec![];
-    for i in 0..10 {
+    for i in 0..100 {
         let pool = pool.clone();
         let handle = tokio::spawn(async move {
             let session = pool.get().await?;
@@ -47,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let rets = join_all(handles).await;
     println!("rets:{rets:?}");
-    assert!(rets.iter().all(|x| x.is_ok()));
+    assert!(rets.iter().all(|x| x.as_ref().ok().unwrap().is_ok()));
 
     Ok(())
 }
