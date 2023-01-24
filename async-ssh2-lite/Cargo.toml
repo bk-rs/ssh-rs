@@ -12,6 +12,9 @@ keywords = ["SSH", "SSH2"]
 categories = ["asynchronous", "network-programming"]
 readme = "README.md"
 
+[package.metadata.docs.rs]
+features = [ "tokio", "async-io" ]
+
 [features]
 default = []
 
@@ -21,7 +24,7 @@ _integration_tests = []
 _integration_tests_tokio_ext = []
 
 [dependencies]
-ssh2 = { version = "0.9", default-features = false }
+ssh2 = { version = "0.9.4", default-features = false }
 libssh2-sys = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false, features = ["io", "std", "async-await-macro"] }
 async-trait = { version = "0.1", default-features = false }

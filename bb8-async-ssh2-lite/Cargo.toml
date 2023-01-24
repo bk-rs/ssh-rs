@@ -12,6 +12,9 @@ keywords = ["SSH", "SSH2"]
 categories = []
 readme = "README.md"
 
+[package.metadata.docs.rs]
+features = [ "tokio" ]
+
 [features]
 default = ["tokio"]
 
