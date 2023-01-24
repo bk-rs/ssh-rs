@@ -1,6 +1,6 @@
 [package]
 name = "bb8-async-ssh2-lite"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["vkill <vkill.net@gmail.com>"]
 edition = "2021"
 description = "Asynchronous ssh2 connection pool."
