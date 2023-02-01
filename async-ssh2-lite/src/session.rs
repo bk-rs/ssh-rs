@@ -4,7 +4,7 @@ use std::{path::Path, sync::Arc};
 #[cfg(unix)]
 use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
-use std::os::windows::io::AsRawSocket;
+use std::os::windows::io::{AsRawSocket, BorrowedSocket};
 
 use ssh2::{
     BlockDirections, DisconnectCode, Error as Ssh2Error, HashType, HostKeyType,
@@ -62,7 +62,7 @@ where
         configuration: impl Into<Option<SessionConfiguration>>,
     ) -> Result<Self, Error> {
         let mut session = get_session(configuration)?;
-        session.set_tcp_stream(crate::util::RawSocketWrapper(stream.as_raw_socket()));
+        session.set_tcp_stream(unsafe { BorrowedSocket::borrow_raw(stream.as_raw_socket()) });
 
         let stream = Arc::new(stream);
 

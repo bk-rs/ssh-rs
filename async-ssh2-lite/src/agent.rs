@@ -3,7 +3,7 @@ use std::sync::Arc;
 #[cfg(unix)]
 use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
-use std::os::windows::io::AsRawSocket;
+use std::os::windows::io::{AsRawSocket, BorrowedSocket};
 
 use ssh2::{Agent, PublicKey, Session};
 
@@ -44,7 +44,7 @@ where
 {
     pub fn new(stream: S) -> Result<Self, Error> {
         let mut session = get_session(None)?;
-        session.set_tcp_stream(crate::util::RawSocketWrapper(stream.as_raw_socket()));
+        session.set_tcp_stream(unsafe { BorrowedSocket::borrow_raw(stream.as_raw_socket()) });
 
         let stream = Arc::new(stream);
 
