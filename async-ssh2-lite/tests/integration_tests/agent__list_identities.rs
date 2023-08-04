@@ -47,7 +47,7 @@ async fn from_session_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
     __run__session__userauth_pubkey_file(&mut session).await?;
-    __run__session__agent__list_identities(&mut session).await?;
+    __run__session__agent__list_identities(&session).await?;
 
     Ok(())
 }
@@ -60,14 +60,14 @@ fn from_session_with_async_io() -> Result<(), Box<dyn error::Error>> {
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
         __run__session__userauth_pubkey_file(&mut session).await?;
-        __run__session__agent__list_identities(&mut session).await?;
+        __run__session__agent__list_identities(&session).await?;
 
         Ok(())
     })
 }
 
 async fn __run__session__agent__list_identities<S: AsyncSessionStream + Send + Sync + 'static>(
-    session: &mut AsyncSession<S>,
+    session: &AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     let mut agent = session.agent()?;
     __run__agent__list_identities(&mut agent).await?;

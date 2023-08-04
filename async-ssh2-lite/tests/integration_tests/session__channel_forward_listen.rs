@@ -161,7 +161,7 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
                 channel.exit_status()?
             );
             // TODO, https://github.com/bk-rs/ssh-rs/issues/17
-            assert!(vec!["200".into(), "000".into()].contains(&s));
+            assert!(&["200".into(), "000".into()].contains(&s));
             Result::<_, Box<dyn error::Error>>::Ok(())
         })
         .collect::<Vec<_>>();

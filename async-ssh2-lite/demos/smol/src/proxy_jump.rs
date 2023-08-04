@@ -137,7 +137,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
             loop {
                 select! {
                     ret_forward_stream_r = forward_stream_r.read(&mut buf_forward_stream_r).fuse() => match ret_forward_stream_r {
-                        Ok(n) if n == 0 => {
+                        Ok(0) => {
                             println!("forward_stream_r read 0");
                             break
                         },
@@ -155,7 +155,7 @@ async fn run(ex: Arc<Executor<'_>>) -> Result<(), Box<dyn error::Error>> {
                         }
                     },
                     ret_bastion_channel = bastion_channel.read(&mut buf_bastion_channel).fuse() => match ret_bastion_channel {
-                        Ok(n) if n == 0 => {
+                        Ok(0) => {
                             println!("bastion_channel read 0");
                             break
                         },

@@ -16,7 +16,7 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
     let mut session =
         AsyncSession::<async_ssh2_lite::TokioTcpStream>::connect(get_connect_addr()?, None).await?;
     __run__session__userauth_pubkey_file(&mut session).await?;
-    __run__session__sftp(&mut session).await?;
+    __run__session__sftp(&session).await?;
 
     Ok(())
 }
@@ -29,14 +29,14 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
             AsyncSession::<async_ssh2_lite::AsyncIoTcpStream>::connect(get_connect_addr()?, None)
                 .await?;
         __run__session__userauth_pubkey_file(&mut session).await?;
-        __run__session__sftp(&mut session).await?;
+        __run__session__sftp(&session).await?;
 
         Ok(())
     })
 }
 
 async fn __run__session__sftp<S: AsyncSessionStream + Send + Sync + 'static>(
-    session: &mut AsyncSession<S>,
+    session: &AsyncSession<S>,
 ) -> Result<(), Box<dyn error::Error>> {
     let sftp = session.sftp().await?;
 

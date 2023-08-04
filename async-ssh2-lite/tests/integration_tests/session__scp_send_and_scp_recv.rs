@@ -30,8 +30,8 @@ async fn simple_with_tokio() -> Result<(), Box<dyn error::Error>> {
 
     let remote_path = PathBuf::from("/tmp").join(format!("scp_{}", Uuid::new_v4()));
 
-    __run__session__scp_send(&mut session, &remote_path).await?;
-    __run__session__scp_recv(&mut session, &remote_path).await?;
+    __run__session__scp_send(&session, &remote_path).await?;
+    __run__session__scp_recv(&session, &remote_path).await?;
 
     Ok(())
 }
@@ -47,15 +47,15 @@ fn simple_with_async_io() -> Result<(), Box<dyn error::Error>> {
 
         let remote_path = PathBuf::from("/tmp").join(format!("scp_{}", Uuid::new_v4()));
 
-        __run__session__scp_send(&mut session, &remote_path).await?;
-        __run__session__scp_recv(&mut session, &remote_path).await?;
+        __run__session__scp_send(&session, &remote_path).await?;
+        __run__session__scp_recv(&session, &remote_path).await?;
 
         Ok(())
     })
 }
 
 async fn __run__session__scp_send<S: AsyncSessionStream + Send + Sync + 'static>(
-    session: &mut AsyncSession<S>,
+    session: &AsyncSession<S>,
     remote_path: &Path,
 ) -> Result<(), Box<dyn error::Error>> {
     let data: String = thread_rng()
@@ -74,7 +74,7 @@ async fn __run__session__scp_send<S: AsyncSessionStream + Send + Sync + 'static>
 }
 
 async fn __run__session__scp_recv<S: AsyncSessionStream + Send + Sync + 'static>(
-    session: &mut AsyncSession<S>,
+    session: &AsyncSession<S>,
     remote_path: &Path,
 ) -> Result<(), Box<dyn error::Error>> {
     let (mut channel, stat) = session.scp_recv(remote_path).await?;

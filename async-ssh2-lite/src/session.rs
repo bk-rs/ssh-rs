@@ -159,6 +159,8 @@ where
             .await
     }
 
+    #[allow(unknown_lints)]
+    #[allow(clippy::needless_pass_by_ref_mut)]
     pub async fn userauth_keyboard_interactive<P: KeyboardInteractivePrompt + Send>(
         &self,
         username: &str,
@@ -498,7 +500,7 @@ where
                                     loop {
                                         select! {
                                             ret_channel_read = futures_util::AsyncReadExt::read(&mut channel, &mut buf_channel).fuse() => match ret_channel_read {
-                                                Ok(n) if n == 0 => {
+                                                Ok(0)  => {
                                                     break
                                                 },
                                                 Ok(n) => {
@@ -513,7 +515,7 @@ where
                                                 }
                                             },
                                             ret_stream_read = stream.read(&mut buf_stream).fuse() => match ret_stream_read {
-                                                Ok(n) if n == 0 => {
+                                                Ok(0)  => {
                                                     break
                                                 },
                                                 Ok(n) => {
@@ -567,7 +569,7 @@ where
                                     loop {
                                         select! {
                                             ret_channel_read = futures_util::AsyncReadExt::read(&mut channel, &mut buf_channel).fuse() => match ret_channel_read {
-                                                Ok(n) if n == 0 => {
+                                                Ok(0)  => {
                                                     break
                                                 },
                                                 Ok(n) => {
@@ -582,7 +584,7 @@ where
                                                 }
                                             },
                                             ret_stream_read = stream.read(&mut buf_stream).fuse() => match ret_stream_read {
-                                                Ok(n) if n == 0 => {
+                                                Ok(0)  => {
                                                     break
                                                 },
                                                 Ok(n) => {
