@@ -2,9 +2,9 @@
 
 set -ex
 
-# ./run.sh version-9.0_p1-r2 2223 2224 "sleep 3"
+# ./run.sh version-9.3_p2-r0 2223 2224 "sleep 3"
 
-version="${1:-version-9.0_p1-r2}"
+version="${1:-version-9.3_p2-r0}"
 listen_port_bastion=$2
 listen_port_intranet=$3
 callback=$4

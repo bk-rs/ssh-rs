@@ -8,6 +8,8 @@ cargo fmt -- --check
 
 cargo build-all-features
 cargo test-all-features -- --nocapture
+
+./async-ssh2-lite/tests/run_integration_tests.sh
 ```
 
 ```
