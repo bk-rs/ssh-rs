@@ -19,6 +19,7 @@ features = ["tokio", "async-io"]
 default = []
 
 vendored-openssl = ["ssh2/vendored-openssl"]
+openssl-on-win32 = ["ssh2/openssl-on-win32"]
 
 _integration_tests = []
 _integration_tests_tokio_ext = []

@@ -204,7 +204,7 @@ where
             .await
     }
 
-    #[cfg(unix)]
+    #[cfg(any(unix, feature = "vendored-openssl", feature = "openssl-on-win32"))]
     pub async fn userauth_pubkey_memory(
         &self,
         username: &str,
