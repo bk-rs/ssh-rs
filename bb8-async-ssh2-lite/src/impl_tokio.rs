@@ -148,9 +148,11 @@ impl bb8::ManageConnection for AsyncSftpManagerWithTokioTcpStream {
     }
 
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        conn.stat(Path::new("/"))
-            .await
-            .map_err(|e| AsyncSftpManagerError::AsyncSessionManagerError(AsyncSessionManagerError::ConnectError(e)))?;
+        conn.stat(Path::new("/")).await.map_err(|e| {
+            AsyncSftpManagerError::AsyncSessionManagerError(AsyncSessionManagerError::ConnectError(
+                e,
+            ))
+        })?;
         Ok(())
     }
 
