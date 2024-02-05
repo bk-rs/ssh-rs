@@ -1,5 +1,6 @@
 use core::cmp::max;
 use std::net::SocketAddr;
+use std::path::Path;
 
 use async_ssh2_lite::{AsyncSession, AsyncSftp, SessionConfiguration, TokioTcpStream};
 use async_trait::async_trait;
@@ -146,7 +147,10 @@ impl bb8::ManageConnection for AsyncSftpManagerWithTokioTcpStream {
         Ok(sftp)
     }
 
-    async fn is_valid(&self, _conn: &mut Self::Connection) -> Result<(), Self::Error> {
+    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
+        conn.stat(Path::new("/"))
+            .await
+            .map_err(|e| AsyncSftpManagerError::AsyncSessionManagerError(AsyncSessionManagerError::ConnectError(e)))?;
         Ok(())
     }
 
