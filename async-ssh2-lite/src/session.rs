@@ -179,7 +179,7 @@ where
         agent.connect().await?;
         agent.list_identities().await?;
         let identities = agent.identities()?;
-        let identity = match identities.get(0) {
+        let identity = match identities.first() {
             Some(identity) => identity,
             None => return Err(Error::Other("no identities found in the ssh agent".into())),
         };
