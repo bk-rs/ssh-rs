@@ -6,7 +6,10 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use async_io::{Async, Timer};
 use async_trait::async_trait;
-use futures_util::{future, pin_mut, ready};
+use futures_util::{
+    future::{self, Either},
+    pin_mut, ready,
+};
 use ssh2::{BlockDirections, Error as Ssh2Error, Session};
 
 use super::{AsyncSessionStream, BlockDirectionsExt as _};
@@ -51,10 +54,34 @@ where
                     assert!(expected_block_directions.is_readable());
                     assert!(expected_block_directions.is_writable());
 
-                    let (ret, _) = future::select(self.readable(), self.writable())
+                    let (ret, either) = future::select(self.readable(), self.writable())
                         .await
                         .factor_first();
-                    ret?
+                    ret?;
+                    match either {
+                        Either::Left(_) => {
+                            let either = future::select(
+                                self.writable(),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                        }
+                        Either::Right(_) => {
+                            let either = future::select(
+                                self.readable(),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                        }
+                    }
                 }
             }
 
