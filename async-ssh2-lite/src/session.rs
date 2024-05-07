@@ -8,7 +8,7 @@ use std::os::windows::io::{AsRawSocket, BorrowedSocket};
 
 use ssh2::{
     BlockDirections, DisconnectCode, Error as Ssh2Error, HashType, HostKeyType,
-    KeyboardInteractivePrompt, KnownHosts, MethodType, PublicKey, ScpFileStat, Session,
+    KeyboardInteractivePrompt, KnownHosts, MethodType, PublicKey, ScpFileStat, Session, TraceFlags,
 };
 
 use crate::{
@@ -138,6 +138,10 @@ impl<S> AsyncSession<S> {
 
     pub fn timeout(&self) -> u32 {
         self.inner.timeout()
+    }
+
+    pub fn trace(&self, bitmask: TraceFlags) {
+        self.inner.trace(bitmask)
     }
 }
 
