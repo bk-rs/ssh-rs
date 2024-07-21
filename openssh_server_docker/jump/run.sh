@@ -42,7 +42,7 @@ hostname_bastion="openssh_server_bastion"
 hostname_intranet="openssh_server_intranet"
 
 chmod 600 "${keys_dir}/id_rsa"
-chmod 600 "${keys_dir}/id_dsa"
+chmod 600 "${keys_dir}/id_ed25519"
 ssh-add "${keys_dir}/id_rsa"
 
 cleanup() {
