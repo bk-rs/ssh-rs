@@ -35,9 +35,9 @@ keys_dir="${script_path_root}keys"
 hostname="openssh_server"
 
 chmod 600 "${keys_dir}/id_rsa"
-chmod 600 "${keys_dir}/id_dsa"
+chmod 600 "${keys_dir}/id_ed25519"
 ssh-add "${keys_dir}/id_rsa"
-ssh-add "${keys_dir}/id_dsa"
+ssh-add "${keys_dir}/id_ed25519"
 
 cleanup() {
     docker exec ${container_name} tail -n 30 /config/logs/openssh/current
@@ -45,7 +45,7 @@ cleanup() {
     docker stop ${container_name}
 
     ssh-add -d "${keys_dir}/id_rsa"
-    ssh-add -d "${keys_dir}/id_dsa"
+    ssh-add -d "${keys_dir}/id_ed25519"
 
     sleep 1
 }
@@ -54,7 +54,7 @@ trap cleanup EXIT
 # should set PermitRootLogin to yes, because maybe `id -u` is 0
 docker run -d --rm --name ${container_name} \
     -v "${keys_dir}/id_rsa.pub":/pubkeys/id_rsa.pub \
-    -v "${keys_dir}/id_dsa.pub":/pubkeys/id_dsa.pub \
+    -v "${keys_dir}/id_ed25519.pub":/pubkeys/id_ed25519.pub \
     -v "${script_path_root}../sshd_append_PubkeyAcceptedAlgorithms.sh":/etc/cont-init.d/51-sshd_append_PubkeyAcceptedAlgorithms.sh \
     -v "${script_path_root}../sshd_yes_AllowTcpForwarding.sh":/etc/cont-init.d/51-sshd_yes_AllowTcpForwarding.sh \
     -v "${script_path_root}../sshd_yes_PermitRootLogin.sh":/etc/cont-init.d/51-sshd_yes_PermitRootLogin.sh \
@@ -78,7 +78,7 @@ if [ -x "$(command -v socat)" ]; then
 fi
 
 echo "ssh linuxserver.io@127.0.0.1 -p ${listen_port} -i keys/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ControlMaster=no -v"
-echo "ssh linuxserver.io@127.0.0.1 -p ${listen_port} -i keys/id_dsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ControlMaster=no -o HostKeyAlgorithms=+ssh-dss -o PubkeyAcceptedAlgorithms=+ssh-dss -v"
+echo "ssh linuxserver.io@127.0.0.1 -p ${listen_port} -i keys/id_ed25519 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ControlMaster=no -v"
 echo "ssh linuxserver.io@127.0.0.1 -p ${listen_port} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ControlMaster=no -o PreferredAuthentications=password -o PubkeyAuthentication=no -v"
 
 # 
