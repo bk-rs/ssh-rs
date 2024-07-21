@@ -91,9 +91,8 @@ async fn __run__session__channel_forward_listen__with_tokio_spawn<
                                     channel.read(&mut buf[n_read..]),
                                 )
                                 .await
-                                .map_err(|err| {
+                                .inspect_err(|_err| {
                                     eprintln!("channel.read timeout");
-                                    err
                                 })??;
                                 n_read += n;
                                 if n == 0 {

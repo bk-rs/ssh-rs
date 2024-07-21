@@ -76,25 +76,13 @@ async fn __run__session__userauth_agent<S: AsyncSessionStream + Send + Sync + 's
 ) -> Result<(), Box<dyn error::Error>> {
     session.handshake().await?;
 
-    if is_internal_test_openssh_server() {
-        match session.userauth_agent(get_username().as_ref()).await {
-            Ok(_) => {
-                assert!(session.authenticated());
-            }
-            Err(err) => {
-                eprintln!("session.userauth_agent failed, err:{err}");
-                assert!(!session.authenticated());
-            }
+    match session.userauth_agent(get_username().as_ref()).await {
+        Ok(_) => {
+            assert!(session.authenticated());
         }
-    } else {
-        match session.userauth_agent(get_username().as_ref()).await {
-            Ok(_) => {
-                assert!(session.authenticated());
-            }
-            Err(err) => {
-                eprintln!("session.userauth_agent failed, err:{err}");
-                assert!(!session.authenticated());
-            }
+        Err(err) => {
+            eprintln!("session.userauth_agent failed, err:{err}");
+            assert!(!session.authenticated());
         }
     }
 
