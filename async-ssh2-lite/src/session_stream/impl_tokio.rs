@@ -5,7 +5,10 @@ use core::{
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 
 use async_trait::async_trait;
-use futures_util::ready;
+use futures_util::{
+    future::{self, Either},
+    ready,
+};
 use ssh2::{BlockDirections, Error as Ssh2Error, Session};
 use tokio::net::TcpStream;
 #[cfg(unix)]
@@ -50,8 +53,43 @@ impl AsyncSessionStream for TcpStream {
                     assert!(expected_block_directions.is_readable());
                     assert!(expected_block_directions.is_writable());
 
-                    self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
-                        .await?;
+                    let mut n_retry = 0;
+                    loop {
+                        let ready = self
+                            .ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
+                            .await?;
+                        if ready.is_readable() {
+                            let either = future::select(
+                                Box::pin(self.writable()),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                            break;
+                        } else if ready.is_writable() {
+                            let either = future::select(
+                                Box::pin(self.readable()),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                            break;
+                        } else if ready.is_empty() {
+                            n_retry += 1;
+                            if n_retry > 3 {
+                                break;
+                            }
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -146,8 +184,43 @@ impl AsyncSessionStream for UnixStream {
                     assert!(expected_block_directions.is_readable());
                     assert!(expected_block_directions.is_writable());
 
-                    self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
-                        .await?;
+                    let mut n_retry = 0;
+                    loop {
+                        let ready = self
+                            .ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
+                            .await?;
+                        if ready.is_readable() {
+                            let either = future::select(
+                                Box::pin(self.writable()),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                            break;
+                        } else if ready.is_writable() {
+                            let either = future::select(
+                                Box::pin(self.readable()),
+                                Box::pin(sleep(Duration::from_millis(1000))),
+                            )
+                            .await;
+                            match either {
+                                Either::Left((x, _)) => x?,
+                                Either::Right(_) => {}
+                            }
+                            break;
+                        } else if ready.is_empty() {
+                            n_retry += 1;
+                            if n_retry > 3 {
+                                break;
+                            }
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
                 }
             }
 
