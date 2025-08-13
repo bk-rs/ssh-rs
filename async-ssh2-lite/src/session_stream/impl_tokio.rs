@@ -11,7 +11,7 @@ use tokio::net::TcpStream;
 #[cfg(unix)]
 use tokio::net::UnixStream;
 
-use super::{AsyncSessionStream, BlockDirectionsExt as _};
+use super::AsyncSessionStream;
 use crate::{error::Error, util::ssh2_error_is_would_block};
 
 //
@@ -21,7 +21,7 @@ impl AsyncSessionStream for TcpStream {
         &self,
         mut op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error> {
         loop {
@@ -34,22 +34,20 @@ impl AsyncSessionStream for TcpStream {
                 }
             }
 
+            // Wait for whatever I/O the session needs, not what we expect.
+            // The session knows the aggregate state of all channels.
             match sess.block_directions() {
                 BlockDirections::None => continue,
                 BlockDirections::Inbound => {
-                    assert!(expected_block_directions.is_readable());
-
+                    // Session needs to read data (could be for any channel)
                     self.readable().await?
                 }
                 BlockDirections::Outbound => {
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs to write data (could be for any channel)
                     self.writable().await?
                 }
                 BlockDirections::Both => {
-                    assert!(expected_block_directions.is_readable());
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs both read and write
                     self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
                         .await?;
                 }
@@ -66,7 +64,7 @@ impl AsyncSessionStream for TcpStream {
         cx: &mut Context,
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
@@ -74,22 +72,20 @@ impl AsyncSessionStream for TcpStream {
             ret => return Poll::Ready(ret),
         }
 
+        // Wait for whatever I/O the session needs, not what we expect.
+        // The session knows the aggregate state of all channels.
         match sess.block_directions() {
             BlockDirections::None => return Poll::Pending,
             BlockDirections::Inbound => {
-                assert!(expected_block_directions.is_readable());
-
+                // Session needs to read data (could be for any channel)
                 ready!(self.poll_read_ready(cx))?;
             }
             BlockDirections::Outbound => {
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs to write data (could be for any channel)  
                 ready!(self.poll_write_ready(cx))?;
             }
             BlockDirections::Both => {
-                assert!(expected_block_directions.is_readable());
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs both read and write
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
             }
@@ -117,7 +113,7 @@ impl AsyncSessionStream for UnixStream {
         &self,
         mut op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error> {
         loop {
@@ -130,22 +126,20 @@ impl AsyncSessionStream for UnixStream {
                 }
             }
 
+            // Wait for whatever I/O the session needs, not what we expect.
+            // The session knows the aggregate state of all channels.
             match sess.block_directions() {
                 BlockDirections::None => continue,
                 BlockDirections::Inbound => {
-                    assert!(expected_block_directions.is_readable());
-
+                    // Session needs to read data (could be for any channel)
                     self.readable().await?
                 }
                 BlockDirections::Outbound => {
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs to write data (could be for any channel)
                     self.writable().await?
                 }
                 BlockDirections::Both => {
-                    assert!(expected_block_directions.is_readable());
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs both read and write
                     self.ready(tokio::io::Interest::READABLE | tokio::io::Interest::WRITABLE)
                         .await?;
                 }
@@ -162,7 +156,7 @@ impl AsyncSessionStream for UnixStream {
         cx: &mut Context,
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
@@ -170,22 +164,20 @@ impl AsyncSessionStream for UnixStream {
             ret => return Poll::Ready(ret),
         }
 
+        // Wait for whatever I/O the session needs, not what we expect.
+        // The session knows the aggregate state of all channels.
         match sess.block_directions() {
             BlockDirections::None => return Poll::Pending,
             BlockDirections::Inbound => {
-                assert!(expected_block_directions.is_readable());
-
+                // Session needs to read data (could be for any channel)
                 ready!(self.poll_read_ready(cx))?;
             }
             BlockDirections::Outbound => {
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs to write data (could be for any channel)  
                 ready!(self.poll_write_ready(cx))?;
             }
             BlockDirections::Both => {
-                assert!(expected_block_directions.is_readable());
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs both read and write
                 ready!(self.poll_write_ready(cx))?;
                 ready!(self.poll_read_ready(cx))?;
             }

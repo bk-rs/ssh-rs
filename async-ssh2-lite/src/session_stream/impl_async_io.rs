@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use futures_util::{future, pin_mut, ready};
 use ssh2::{BlockDirections, Error as Ssh2Error, Session};
 
-use super::{AsyncSessionStream, BlockDirectionsExt as _};
+use super::AsyncSessionStream;
 use crate::{error::Error, util::ssh2_error_is_would_block};
 
 //
@@ -22,7 +22,7 @@ where
         &self,
         mut op: impl FnMut() -> Result<R, Ssh2Error> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Result<R, Error> {
         loop {
@@ -35,22 +35,20 @@ where
                 }
             }
 
+            // Wait for whatever I/O the session needs, not what we expect.
+            // The session knows the aggregate state of all channels.
             match sess.block_directions() {
                 BlockDirections::None => continue,
                 BlockDirections::Inbound => {
-                    assert!(expected_block_directions.is_readable());
-
+                    // Session needs to read data (could be for any channel)
                     self.readable().await?
                 }
                 BlockDirections::Outbound => {
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs to write data (could be for any channel)
                     self.writable().await?
                 }
                 BlockDirections::Both => {
-                    assert!(expected_block_directions.is_readable());
-                    assert!(expected_block_directions.is_writable());
-
+                    // Session needs both read and write
                     let (ret, _) = future::select(self.readable(), self.writable())
                         .await
                         .factor_first();
@@ -69,7 +67,7 @@ where
         cx: &mut Context,
         mut op: impl FnMut() -> Result<R, IoError> + Send,
         sess: &Session,
-        expected_block_directions: BlockDirections,
+        _expected_block_directions: BlockDirections,
         sleep_dur: Option<Duration>,
     ) -> Poll<Result<R, IoError>> {
         match op() {
@@ -77,22 +75,20 @@ where
             ret => return Poll::Ready(ret),
         }
 
+        // Wait for whatever I/O the session needs, not what we expect.
+        // The session knows the aggregate state of all channels.
         match sess.block_directions() {
             BlockDirections::None => return Poll::Pending,
             BlockDirections::Inbound => {
-                assert!(expected_block_directions.is_readable());
-
+                // Session needs to read data (could be for any channel)
                 ready!(self.poll_readable(cx))?;
             }
             BlockDirections::Outbound => {
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs to write data (could be for any channel)
                 ready!(self.poll_writable(cx))?;
             }
             BlockDirections::Both => {
-                assert!(expected_block_directions.is_readable());
-                assert!(expected_block_directions.is_writable());
-
+                // Session needs both read and write
                 // Must first poll_writable, because session__scp_send_and_scp_recv.rs
                 ready!(self.poll_writable(cx))?;
                 ready!(self.poll_readable(cx))?;
